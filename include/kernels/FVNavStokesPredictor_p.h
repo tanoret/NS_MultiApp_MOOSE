@@ -6,19 +6,15 @@
 //*
 //* Licensed under LGPL 2.1, please see LICENSE for details
 //* https://www.gnu.org/licenses/lgpl-2.1.html
+
 #pragma once
 
 #include "FVMatAdvection.h"
 #include "FVElementalKernel.h"
-#include "FVTimeKernel.h"
-#include "FVFluxKernel.h"
-
 #include "TheWarehouse.h"
 #include "SubProblem.h"
 #include "MooseApp.h"
 #include "INSFVAttributes.h"
-
-#include "FVElementalKernel.h"
 
 #include <vector>
 #include <set>
@@ -26,44 +22,50 @@
 class INSFVVelocityVariable;
 class INSFVPressureVariable;
 
-
-class FVNavierStokesPredictor_p : public FVMatAdvection
-                                  //public FVTimeKernel
-                                  //public FVFluxKernel,
-                                  //public FVElementalKernel
+/**
+ * An advection kernel that implements interpolation schemes specific to Navier-Stokes flow
+ * physics
+ */
+class FVNavStokesPredictor_p : public FVMatAdvection
 {
 public:
   static InputParameters validParams();
-  FVNavierStokesPredictor_p(const InputParameters & params);
+  FVNavStokesPredictor_p(const InputParameters & params);
   void initialSetup() override;
 
 protected:
+  /**
+   * interpolation overload for the velocity
+   */
+  virtual void interpolate(Moose::FV::InterpMethod m, ADRealVectorValue & interp_v);
 
-  // Problem dimension
-  const unsigned int _dim;
-
-  // Thermophysical properties
-  const Moose::Functor<ADReal> & _rho; //Density
-  const Moose::Functor<ADReal> & _mu; //Dynamic viscosity
-
-  // Turbulent coefficients
-  // const Moose::Functor<ADReal> & _mixing_len;
-
-  /// index x|y|z
-  const unsigned int _index;
-
-  // Over-write virtual Qp residual mehtod
   virtual ADReal computeQpResidual() override;
+
   void residualSetup() override final { clearRCCoeffs(); }
   void jacobianSetup() override final { clearRCCoeffs(); }
 
-  // Interpolation overload for the velocity in the advection kernel
-  virtual void interpolate(Moose::FV::InterpMethod m, ADRealVectorValue & interp_v);
+  /// The dynamic viscosity
+  const Moose::Functor<ADReal> & _mu;
 
-  //Rhie-Chow related
+  /**
+   * Returns the Rhie-Chow 'a' coefficient for the requested element \p elem
+   * @param elem The elem to get the Rhie-Chow coefficient for
+   * @param mu The dynamic viscosity
+   */
   const VectorValue<ADReal> & rcCoeff(const Elem & elem) const;
+
+  /**
+   * method for computing the Rhie-Chow 'a' coefficients for the given elem \p elem
+   * @param elem The elem to compute the Rhie-Chow coefficient for
+   * @param mu The dynamic viscosity
+   */
   virtual VectorValue<ADReal> coeffCalculator(const Elem & elem) const;
+
+  /**
+   * Clear the RC 'a' coefficient cache
+   */
   void clearRCCoeffs();
+
   bool skipForBoundary(const FaceInfo & fi) const override;
 
   /// pressure variable
@@ -74,31 +76,56 @@ protected:
   const INSFVVelocityVariable * const _v_var;
   /// z-velocity
   const INSFVVelocityVariable * const _w_var;
-  // pressure kernel
-  // const MooseVariableFVReal * const _p_mom_var;
-  /// variable for time derivative
-  // const ADVariableValue & _var_dot;
+
+  /// Density
+  const Moose::Functor<ADReal> & _rho;
+
+  /// the dimension of the simulation
+  const unsigned int _dim;
 
   /// The interpolation method to use for the velocity
   Moose::FV::InterpMethod _velocity_interp_method;
 
-  /// Boundary IDs
+  /// Boundary IDs with no slip walls
   std::set<BoundaryID> _no_slip_wall_boundaries;
+
+  /// Boundary IDs with slip walls
   std::set<BoundaryID> _slip_wall_boundaries;
+
+  /// Flow Boundary IDs
   std::set<BoundaryID> _flow_boundaries;
-  std::set<BoundaryID> _fully_developed_flow_boundaries; //sub-set of flow boundary IDs
+
+  /// Fully Developed Flow Boundary IDs. This is a subset of \p _flow_boundaries
+  std::set<BoundaryID> _fully_developed_flow_boundaries;
+
+  /// Symmetry Boundary IDs
   std::set<BoundaryID> _symmetry_boundaries;
-  std::set<BoundaryID> _all_boundaries; // All the BoundaryIDs covered by our different types of INSFVBCs
 
-  /// A map from elements to the 'a' coefficients used in the Rhie-Chow interpolation
-  static std::unordered_map<const MooseApp *, std::vector<std::unordered_map<const Elem *, VectorValue<ADReal>>>> _rc_a_coeffs;
+  /// All the BoundaryIDs covered by our different types of INSFVBCs
+  std::set<BoundaryID> _all_boundaries;
 
-  //// Access to the current element
+  /// A map from elements to the 'a' coefficients used in the Rhie-Chow interpolation. The size of
+  /// the vector is equal to the number of threads in the simulation. We maintain a map from
+  /// MooseApp pointer to RC coefficients in order to support MultiApp simulations
+  static std::unordered_map<const MooseApp *,
+                            std::vector<std::unordered_map<const Elem *, VectorValue<ADReal>>>>
+      _rc_a_coeffs;
+
+  // Pointer to the current element
   const Elem * const & _current_elem;
 
-private:
-  void setupFlowBoundaries(BoundaryID bnd_id); //Query for \p INSFVBCs::INSFVFlowBC on \p bc_id and add if query successful
+  /// index x|y|z
+  const unsigned int _index;
 
+private:
+  /**
+   * Query for \p INSFVBCs::INSFVFlowBC on \p bc_id and add if query successful
+   */
+  void setupFlowBoundaries(BoundaryID bnd_id);
+
+  /**
+   * Query for \p INSFVBCs on \p bc_id and add if query successful
+   */
   template <typename T>
-  void setupBoundaries(const BoundaryID bnd_id, INSFVBCs bc_type, std::set<BoundaryID> & bnd_ids); //Query for \p INSFVBCs on \p bc_id and add if query successful
+  void setupBoundaries(const BoundaryID bnd_id, INSFVBCs bc_type, std::set<BoundaryID> & bnd_ids);
 };

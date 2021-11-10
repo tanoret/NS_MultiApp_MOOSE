@@ -26,7 +26,7 @@ FVNavStokesPressurePoisson_p::validParams()
   params.addRequiredCoupledVar("u_star", "star x-velocity");
   params.addCoupledVar("v_star", "star y-velocity"); // only required in 2D and 3D
   params.addCoupledVar("w_star", "star z-velocity"); // only required in 3D
-  params.addRequiredCoupledVar("p", "pressure");
+  params.addRequiredCoupledVar("pressure_old", "pressure old");
 
   // Set velocity interpolation method for the RSH term
   MooseEnum velocity_interp_method("average rc", "rc");
@@ -50,7 +50,7 @@ FVNavStokesPressurePoisson_p::FVNavStokesPressurePoisson_p(const InputParameters
     _mu(getFunctor<ADReal>("mu")),
 
     // Get coupled variables
-    _p_old(dynamic_cast<const INSFVPressureVariable *>(getFieldVar("pressure", 0))),
+    _p_old(dynamic_cast<const INSFVPressureVariable *>(getFieldVar("pressure_old", 0))),
     _u_star(dynamic_cast<const INSFVVelocityVariable *>(getFieldVar("u_star", 0))),
     _v_star(_mesh.dimension() >= 2 ? dynamic_cast<const INSFVVelocityVariable *>(getFieldVar("v_star", 0)) : nullptr),
     _w_star(_mesh.dimension() == 3 ? dynamic_cast<const INSFVVelocityVariable *>(getFieldVar("w_star", 0)) : nullptr),
@@ -97,11 +97,21 @@ FVNavStokesPressurePoisson_p::computeQpResidual()
 
   /// Divergence term
   const auto _grad_u_x = _u_star->adGradSln(_current_elem)(0);
-  const auto _grad_v_x = _v_star->adGradSln(_current_elem)(1);
-  const auto _grad_w_z = _w_star->adGradSln(_current_elem)(2);
-  const auto u_div = _grad_u_x + _grad_v_x + _grad_w_z;
+  auto u_div = _grad_u_x;
 
-  residual -= (_rho(_current_elem)/_dt) * u_div;
+  if (_mesh.dimension() >= 2)
+  {
+    const auto _grad_v_x = _v_star->adGradSln(_current_elem)(1);
+    u_div = u_div + _grad_v_x;
+  }
+  if (_mesh.dimension() >= 2)
+  {
+    const auto _grad_w_z = _w_star->adGradSln(_current_elem)(2);
+    u_div = u_div + _grad_w_z;
+  }
+
+  if(_is_transient)
+    residual -= (_rho(_current_elem)/_dt) * u_div;
 
   return residual;
 }

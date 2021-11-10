@@ -9,10 +9,9 @@
 
 #include "FVNavStokesPredictor_p.h"
 
+#include "FVUtils.h"
 #include "INSFVPressureVariable.h"
 #include "INSFVVelocityVariable.h"
-#include "SystemBase.h"
-#include "MooseMesh.h"
 #include "FVDirichletBC.h"
 #include "INSFVFlowBC.h"
 #include "INSFVFullyDevelopedFlowBC.h"
@@ -20,9 +19,11 @@
 #include "INSFVSlipWallBC.h"
 #include "INSFVSymmetryBC.h"
 #include "INSFVAttributes.h"
+#include "MooseMesh.h"
 #include "MooseUtils.h"
 #include "NS.h"
-#include "FVUtils.h"
+#include "Transient.h"
+#include "SystemBase.h"
 
 #include "libmesh/dof_map.h"
 #include "libmesh/elem.h"
@@ -31,30 +32,33 @@
 
 #include <algorithm>
 
-registerMooseObject("NavierStokesApp", FVNavierStokesPredictor_p);
+registerMooseObject("AirfoilAppApp", FVNavStokesPredictor_p);
 
 std::unordered_map<const MooseApp *,
                    std::vector<std::unordered_map<const Elem *, VectorValue<ADReal>>>>
-    FVNavierStokesPredictor_p::_rc_a_coeffs;
+    FVNavStokesPredictor_p::_rc_a_coeffs;
 
 InputParameters
-FVNavierStokesPredictor_p::validParams()
+FVNavStokesPredictor_p::validParams()
 {
   InputParameters params = FVMatAdvection::validParams();
-  params += FVElementalKernel::validParams();
-
   params.addRequiredCoupledVar(NS::pressure, "The pressure variable.");
   params.addRequiredCoupledVar("u", "The velocity in the x direction.");
   params.addCoupledVar("v", "The velocity in the y direction.");
   params.addCoupledVar("w", "The velocity in the z direction.");
 
   MooseEnum velocity_interp_method("average rc", "rc");
-
   params.addParam<MooseEnum>(
       "velocity_interp_method",
       velocity_interp_method,
       "The interpolation to use for the velocity. Options are "
       "'average' and 'rc' which stands for Rhie-Chow. The default is Rhie-Chow.");
+
+  MooseEnum momentum_component("x=0 y=1 z=2");
+  params.addRequiredParam<MooseEnum>(
+      "momentum_component",
+      momentum_component,
+      "The component of the momentum equation that this kernel applies to.");
 
   params.addRequiredParam<MooseFunctorName>("mu", "The viscosity functor material property");
   params.addRequiredParam<MaterialPropertyName>("rho", "Density functor material property");
@@ -62,17 +66,14 @@ FVNavierStokesPredictor_p::validParams()
   // We need 2 ghost layers for the Rhie-Chow interpolation
   params.set<unsigned short>("ghost_layers") = 2;
 
-  params.addClassDescription("Object for Navier Stokes predictor");
+  params.addClassDescription("Object for advecting momentum, e.g. rho*u");
 
   return params;
 }
 
-FVNavierStokesPredictor_p::FVNavierStokesPredictor_p(const InputParameters & params)
+FVNavStokesPredictor_p::FVNavStokesPredictor_p(const InputParameters & params)
   : FVMatAdvection(params),
-    _dim(_subproblem.mesh().dimension()),
-    _rho(getFunctor<ADReal>("rho")),
     _mu(getFunctor<ADReal>("mu")),
-    _index(getParam<MooseEnum>("momentum_component")),
     _p_var(dynamic_cast<const INSFVPressureVariable *>(getFieldVar(NS::pressure, 0))),
     _u_var(dynamic_cast<const INSFVVelocityVariable *>(getFieldVar("u", 0))),
     _v_var(params.isParamValid("v")
@@ -81,8 +82,10 @@ FVNavierStokesPredictor_p::FVNavierStokesPredictor_p(const InputParameters & par
     _w_var(params.isParamValid("w")
                ? dynamic_cast<const INSFVVelocityVariable *>(getFieldVar("w", 0))
                : nullptr),
-    //_var_dot(_var.adUDot()),
-    _current_elem(_assembly.elem())
+    _rho(getFunctor<ADReal>("rho")),
+    _dim(_subproblem.mesh().dimension()),
+    _current_elem(_assembly.elem()),
+    _index(getParam<MooseEnum>("momentum_component"))
 {
 #ifndef MOOSE_GLOBAL_AD_INDEXING
   mooseError("INSFV is not supported by local AD indexing. In order to use INSFV, please run the "
@@ -133,7 +136,7 @@ FVNavierStokesPredictor_p::FVNavierStokesPredictor_p(const InputParameters & par
 }
 
 void
-FVNavierStokesPredictor_p::initialSetup()
+FVNavStokesPredictor_p::initialSetup()
 {
   std::set<BoundaryID> all_connected_boundaries;
   const auto & blk_ids = blockRestricted() ? blockIDs() : _mesh.meshSubdomains();
@@ -155,7 +158,7 @@ FVNavierStokesPredictor_p::initialSetup()
 }
 
 void
-FVNavierStokesPredictor_p::setupFlowBoundaries(const BoundaryID bnd_id)
+FVNavStokesPredictor_p::setupFlowBoundaries(const BoundaryID bnd_id)
 {
   std::vector<INSFVFlowBC *> flow_bcs;
 
@@ -194,9 +197,9 @@ FVNavierStokesPredictor_p::setupFlowBoundaries(const BoundaryID bnd_id)
 
 template <typename T>
 void
-FVNavierStokesPredictor_p::setupBoundaries(const BoundaryID bnd_id,
-                                           const INSFVBCs bc_type,
-                                           std::set<BoundaryID> & bnd_ids)
+FVNavStokesPredictor_p::setupBoundaries(const BoundaryID bnd_id,
+                                        const INSFVBCs bc_type,
+                                        std::set<BoundaryID> & bnd_ids)
 {
   std::vector<T *> bcs;
 
@@ -215,7 +218,7 @@ FVNavierStokesPredictor_p::setupBoundaries(const BoundaryID bnd_id,
 }
 
 bool
-FVNavierStokesPredictor_p::skipForBoundary(const FaceInfo & fi) const
+FVNavStokesPredictor_p::skipForBoundary(const FaceInfo & fi) const
 {
   if (!onBoundary(fi))
     return false;
@@ -233,11 +236,11 @@ FVNavierStokesPredictor_p::skipForBoundary(const FaceInfo & fi) const
 
   // If not a flow boundary, then there should be no advection/flow in the normal direction, e.g. we
   // should not contribute any advective flux
-  return true;
+  return !_var.getDirichletBC(fi).first;
 }
 
 const VectorValue<ADReal> &
-FVNavierStokesPredictor_p::rcCoeff(const Elem & elem) const
+FVNavStokesPredictor_p::rcCoeff(const Elem & elem) const
 {
   auto it = _rc_a_coeffs.find(&_app);
   mooseAssert(it != _rc_a_coeffs.end(),
@@ -264,8 +267,31 @@ FVNavierStokesPredictor_p::rcCoeff(const Elem & elem) const
 
 #ifdef MOOSE_GLOBAL_AD_INDEXING
 VectorValue<ADReal>
-FVNavierStokesPredictor_p::coeffCalculator(const Elem & elem) const
+FVNavStokesPredictor_p::coeffCalculator(const Elem & elem) const
 {
+  // these coefficients arise from simple control volume balances of advection and diffusion. These
+  // coefficients are the linear coefficients associated with the centroid of the control volume.
+  // Note that diffusion coefficients should always be positive, e.g. elliptic operators always
+  // yield positive definite matrices
+  //
+  // Example 1D discretization of diffusion, e.g. the sum of the fluxes around a control volume:
+  //
+  // \sum_f -D \nabla \phi * \hat{n} =
+  //   -D_e * (phi_E - \phi_C) / d_{CE} * 1 - D_w * (\phi_C - \phi_W) / d_{WC} * -1 =
+  //   D_e / d_{CE} * (\phi_C - \phi_E) + D_w / d_{WC} * (\phi_C - \phi_W)
+  //
+  // Note the positive coefficients for \phi_C !!
+  //
+  // Now an example 1D discretization for advection using central differences, e.g. an average
+  // interpolation
+  //
+  // \sum_f \vec{u} \phi \hat{n} =
+  //   u_w * (\phi_W + \phi_C) / 2 * -1 + u_e * (\phi_C + \phi_E) / 2 * 1 =
+  //   -u_w / 2 * \phi_W + u_e / 2 * \phi_E + (u_e - u_w) / 2 * \phi_C
+  //
+  // Note that the coefficient for \phi_C may or may not be positive depending on the values of u_e
+  // and u_w
+
   VectorValue<ADReal> coeff = 0;
 
   ADRealVectorValue elem_velocity(_u_var->getElemValue(&elem));
@@ -349,7 +375,13 @@ FVNavierStokesPredictor_p::coeffCalculator(const Elem & elem) const
 
           if (_fully_developed_flow_boundaries.find(bc_id) ==
               _fully_developed_flow_boundaries.end())
-
+            // We are not on a fully developed flow boundary, so we have a viscous term
+            // contribution. This term is slightly modified relative to the internal face term.
+            // Instead of the distance between elem and neighbor centroid, we just have the distance
+            // between the elem and face centroid. Specifically, the term below is the result of
+            // Moukalled 8.80, 8.82, and the orthogonal correction approach equation for E_f,
+            // equation 8.89. So relative to the internal face viscous term, we have substituted
+            // eqn. 8.82 for 8.78
             temp_coeff +=
                 face_mu * surface_vector.norm() / (fi->faceCentroid() - rc_centroid).norm();
 
@@ -372,7 +404,7 @@ FVNavierStokesPredictor_p::coeffCalculator(const Elem & elem) const
         }
       }
 
-      mooseError("The FVNavierStokesPredictor_p object ",
+      mooseError("The FVNavStokesPredictor_p object ",
                  this->name(),
                  " is not completely bounded by INSFVBCs. Please examine sideset ",
                  *fi->boundaryIDs().begin(),
@@ -419,7 +451,7 @@ FVNavierStokesPredictor_p::coeffCalculator(const Elem & elem) const
 }
 
 void
-FVNavierStokesPredictor_p::interpolate(Moose::FV::InterpMethod m, ADRealVectorValue & v)
+FVNavStokesPredictor_p::interpolate(Moose::FV::InterpMethod m, ADRealVectorValue & v)
 {
   const Elem * const elem = &_face_info->elem();
   const Elem * const neighbor = _face_info->neighborPtr();
@@ -515,36 +547,21 @@ FVNavierStokesPredictor_p::interpolate(Moose::FV::InterpMethod m, ADRealVectorVa
 #else
 
 VectorValue<ADReal>
-FVNavierStokesPredictor_p::coeffCalculator(const Elem &) const
+FVNavStokesPredictor_p::coeffCalculator(const Elem &) const
 {
-  mooseError("FVNavierStokesPredictor_p only works with global AD indexing");
+  mooseError("FVNavStokesPredictor_p only works with global AD indexing");
 }
 
 void
-FVNavierStokesPredictor_p::interpolate(Moose::FV::InterpMethod, ADRealVectorValue &)
+FVNavStokesPredictor_p::interpolate(Moose::FV::InterpMethod, ADRealVectorValue &)
 {
-  mooseError("FVNavierStokesPredictor_p only works with global AD indexing");
+  mooseError("FVNavStokesPredictor_p only works with global AD indexing");
 }
 #endif
 
-void
-FVNavierStokesPredictor_p::clearRCCoeffs()
-{
-  auto it = _rc_a_coeffs.find(&_app);
-  mooseAssert(it != _rc_a_coeffs.end(),
-              "No RC coeffs structure exists for the given MooseApp pointer");
-  mooseAssert(_tid < it->second.size(),
-              "The RC coeffs structure size "
-                  << it->second.size() << " is greater than or equal to the provided thread ID "
-                  << _tid);
-  it->second[_tid].clear();
-}
-
 ADReal
-FVNavierStokesPredictor_p::computeQpResidual()
+FVNavStokesPredictor_p::computeQpResidual()
 {
-
-  // Computing advection residual
   ADRealVectorValue v;
   ADReal adv_quant_interface;
 
@@ -560,22 +577,51 @@ FVNavierStokesPredictor_p::computeQpResidual()
                          *_face_info,
                          true);
 
-  const auto conv_residual = _normal * v * adv_quant_interface;
+  const auto convection_residual = _normal * v * adv_quant_interface;
 
-  // Computing diffusion residual
-  auto dudn = gradUDotNormal();
+  // Diffusion residual
+  const auto mu_elem = _mu(elem_face);
+  const auto mu_neighbor = _mu(neighbor_face);
 
-  const auto k = _mu(std::make_tuple(
-      _face_info, Moose::FV::LimiterType::CentralDifference, true, faceArgSubdomains()));
+  // Compute the diffusion driven by the velocity gradient
+  // Interpolate viscosity divided by porosity on the face
+  ADReal mu_face;
+  Moose::FV::interpolate(Moose::FV::InterpMethod::Average,
+                         mu_face,
+                         mu_elem,
+                         mu_neighbor,
+                         *_face_info,
+                         true);
 
-  const auto diffusion_residual =  -1 * k * dudn;
+ // const auto mu_face = _mu(std::make_tuple(
+ //     _face_info, Moose::FV::LimiterType::CentralDifference, true, faceArgSubdomains()));
 
-  // Computing pressure residual
-  const auto pressure_residual = _p_var->adGradSln(_current_elem)(_index);
+  // Compute face superficial velocity gradient
+  auto dudn = gradUDotNormal(); //_var.adGradSln(*_face_info) * _face_info->normal(); //Moose::FV::gradUDotNormal(_u_elem[_qp], _u_neighbor[_qp], *_face_info, _var);
 
-  // Computing time derivative residual
-  const auto time_derivative_residual = _rho(_current_elem) * _var.adUDot()[_qp];
+  // First term of residual
+  const auto diffusion_residual = - 1.0 * mu_face * dudn; //mu_face * dudn;
 
+  // Pressure Residual
+  // const auto pressure_residual = _p_var->adGradSln(*_face_info)(_index) * _face_info->normal()(_index);
 
-  return conv_residual + diffusion_residual + pressure_residual + time_derivative_residual;
+  // Time derivatives
+  // ADReal time_residual = 0.;
+  // if(_is_transient)
+  //   const auto time_residual = _rho(_current_elem) * _var.dot(_current_elem);
+
+  return convection_residual + diffusion_residual; //+ pressure_residual; //+ time_residual;
+}
+
+void
+FVNavStokesPredictor_p::clearRCCoeffs()
+{
+  auto it = _rc_a_coeffs.find(&_app);
+  mooseAssert(it != _rc_a_coeffs.end(),
+              "No RC coeffs structure exists for the given MooseApp pointer");
+  mooseAssert(_tid < it->second.size(),
+              "The RC coeffs structure size "
+                  << it->second.size() << " is greater than or equal to the provided thread ID "
+                  << _tid);
+  it->second[_tid].clear();
 }
