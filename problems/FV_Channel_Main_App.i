@@ -71,6 +71,14 @@
     Ainv_y = Ainv_y
     Hu_x = Hhat_x
     Hu_y = Hhat_y
+    boundaries_to_force = 'left'
+  []
+  [divergence]
+    type = FVFunctorDivergence
+    sign = 1
+    x_functor = Hhat_x
+    y_functor = Hhat_y
+    variable = pressure_p
   []
   # [diff_v]
   #   type = FVDiffusion

@@ -458,19 +458,6 @@ FVNavStokesPredictor_p::interpolate(Moose::FV::InterpMethod m, ADRealVectorValue
 
   if (onBoundary(*_face_info))
   {
-#ifndef NDEBUG
-    bool flow_boundary_found = false;
-    for (const auto b_id : _face_info->boundaryIDs())
-      if (_flow_boundaries.find(b_id) != _flow_boundaries.end())
-      {
-        flow_boundary_found = true;
-        break;
-      }
-
-    mooseAssert(flow_boundary_found,
-                "INSFV*Advection flux kernel objects should only execute on flow boundaries.");
-#endif
-
     v(0) = _u_var->getBoundaryFaceValue(*_face_info);
     if (_v_var)
       v(1) = _v_var->getBoundaryFaceValue(*_face_info);
@@ -586,24 +573,23 @@ FVNavStokesPredictor_p::computeQpResidual()
   // Compute the diffusion driven by the velocity gradient
   // Interpolate viscosity divided by porosity on the face
   ADReal mu_face;
-  Moose::FV::interpolate(Moose::FV::InterpMethod::Average,
-                         mu_face,
-                         mu_elem,
-                         mu_neighbor,
-                         *_face_info,
-                         true);
+  Moose::FV::interpolate(
+      Moose::FV::InterpMethod::Average, mu_face, mu_elem, mu_neighbor, *_face_info, true);
 
- // const auto mu_face = _mu(std::make_tuple(
- //     _face_info, Moose::FV::LimiterType::CentralDifference, true, faceArgSubdomains()));
+  // const auto mu_face = _mu(std::make_tuple(
+  //     _face_info, Moose::FV::LimiterType::CentralDifference, true, faceArgSubdomains()));
 
   // Compute face superficial velocity gradient
-  auto dudn = gradUDotNormal(); //_var.adGradSln(*_face_info) * _face_info->normal(); //Moose::FV::gradUDotNormal(_u_elem[_qp], _u_neighbor[_qp], *_face_info, _var);
+  auto dudn = gradUDotNormal(); //_var.adGradSln(*_face_info) * _face_info->normal();
+                                ////Moose::FV::gradUDotNormal(_u_elem[_qp], _u_neighbor[_qp],
+                                //*_face_info, _var);
 
   // First term of residual
-  const auto diffusion_residual = - 1.0 * mu_face * dudn; //mu_face * dudn;
+  const auto diffusion_residual = -1.0 * mu_face * dudn; // mu_face * dudn;
 
   // Pressure Residual
-  // const auto pressure_residual = _p_var->adGradSln(*_face_info)(_index) * _face_info->normal()(_index);
+  // const auto pressure_residual = _p_var->adGradSln(*_face_info)(_index) *
+  // _face_info->normal()(_index);
 
   // Time derivatives
   // ADReal time_residual = 0.;
