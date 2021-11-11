@@ -82,6 +82,8 @@ FVCorrector::computeValue()
   auto new_pressure_grad = _pressure_relaxation * _p_var->adGradSln(_current_elem)(_index)
                            + (1. - _pressure_relaxation) * _p_old->adGradSln(_current_elem)(_index);
 
+  std::cout << "Grad: " << new_pressure_grad << std::endl;
+
   // Computing RHS term
   auto _p_term = _Ainv->getElemValue(_current_elem) * new_pressure_grad * _assembly.elemVolume();
 

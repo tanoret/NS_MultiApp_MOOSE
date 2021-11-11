@@ -2,8 +2,8 @@
   [gen]
     type = GeneratedMeshGenerator
     dim = 2
-    nx = 50
-    ny = 10
+    nx = 5
+    ny = 2
     xmin = 0.0
     xmax = 50.0
     ymin = 0.0
@@ -55,6 +55,9 @@
   [pressure_old]
     type = INSFVPressureVariable
   []
+  [pressure_relaxed]
+    type = INSFVPressureVariable
+  []
   [u_adv]
     type = INSFVVelocityVariable
   []
@@ -73,13 +76,13 @@
     Hu_y = Hhat_y
     boundaries_to_force = 'left'
   []
-  [divergence]
-    type = FVFunctorDivergence
-    sign = 1
-    x_functor = Hhat_x
-    y_functor = Hhat_y
-    variable = pressure_p
-  []
+  # [divergence]
+  #   type = FVFunctorDivergence
+  #   sign = 1
+  #   x_functor = Hhat_x
+  #   y_functor = Hhat_y
+  #   variable = pressure_p
+  # []
   # [diff_v]
   #   type = FVDiffusion
   #   variable = pressure_p
@@ -113,27 +116,35 @@
     rhs = RHS_y
     momentum_component = 'y'
   []
+  [pressure_relaxation]
+    type = pressureRelaxation
+    variable = pressure_relaxed
+    execute_on = timestep_end
+    pressure = pressure_p
+    pressure_old = pressure_old
+    pressure_relaxation = 1.0
+  []
   [corrector_x]
     type = FVCorrector
     variable = u_adv
     execute_on = timestep_end
-    pressure = pressure_p
+    pressure = pressure_relaxed
     pressure_old = pressure_old
     Ainv = Ainv_x
     Hhat = Hhat_x
     momentum_component = 'x'
-    pressure_relaxation = 1.0
+    pressure_relaxation = 1.0 # This is the gradient relaxation - try to keep in 1.0
   []
   [corrector_y]
     type = FVCorrector
     variable = v_adv
     execute_on = timestep_end
-    pressure = pressure_p
+    pressure = pressure_relaxed
     pressure_old = pressure_old
     Ainv = Ainv_y
     Hhat = Hhat_y
     momentum_component = 'y'
-    pressure_relaxation = 1.0
+    pressure_relaxation = 1.0 # This is the gradient relaxation - try to keep in 1.0
   []
 []
 
@@ -284,7 +295,7 @@
     type = MultiAppCopyTransfer
     direction = to_multiapp
     multi_app = sub_predictor
-    source_variable = pressure_p
+    source_variable = pressure_relaxed
     variable = pressure_mom
   []
 []

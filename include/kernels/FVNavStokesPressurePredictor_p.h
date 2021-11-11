@@ -52,9 +52,9 @@ protected:
   const MooseVariableFVReal * const _Ainv_y;
   const MooseVariableFVReal * const _Ainv_z;
 
-  const MooseVariableFVReal * const _Hu_x;
-  const MooseVariableFVReal * const _Hu_y;
-  const MooseVariableFVReal * const _Hu_z;
+  const Moose::Functor<ADReal> & _Hu_x;
+  const Moose::Functor<ADReal> & _Hu_y;
+  const Moose::Functor<ADReal> & _Hu_z;
 
   // const MooseVariableFVReal * const _rhs_x;
   // const MooseVariableFVReal * const _rhs_y;
