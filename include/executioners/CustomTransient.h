@@ -289,4 +289,5 @@ protected:
   /// steady-state, this member should probably be be false.
   const bool _normalize_solution_diff_norm_by_dt;
   const bool & _verbose_print;
+  const bool & _momentum_predictor_bool;
 };

@@ -1,4 +1,4 @@
-mu=0.1
+mu=1.1
 rho=1.0
 U=0.1
 advected_interp_method='average'
@@ -9,12 +9,12 @@ velocity_interp_method='average'
   [gen]
     type = GeneratedMeshGenerator
     dim = 2
-    nx = 5
-    ny = 2
+    nx = 3
+    ny = 3
     xmin = 0.0
-    xmax = 50.0
+    xmax = 3.0
     ymin = 0.0
-    ymax = 10.0
+    ymax = 3.0
   []
 []
 
@@ -211,13 +211,15 @@ velocity_interp_method='average'
   #petsc_options_value = 'asm      2               ilu          4'
   #line_search = 'none'
 
-  nl_rel_tol = 1e-8
-  nl_abs_tol = 1e-9
-  nl_max_its = 40
-  l_tol = 1e-8
-  l_max_its = 500
+  #nl_rel_tol = 1e-8
+  #nl_abs_tol = 1e-9
+  #nl_max_its = 40
+  custom_rel_tol = 1e-30
+  custom_abs_tol = 1e-6
+  l_max_its = 50
 
   verbose_print = false
+  momentum_predictor_bool = true
 []
 
 # [Outputs]

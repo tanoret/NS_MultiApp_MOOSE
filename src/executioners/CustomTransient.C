@@ -147,6 +147,8 @@ CustomTransient::validParams()
 
   params.addParam<bool>("verbose_print", false, "If true then print the matrix of coefs and rhs.");
 
+  params.addParam<bool>("momentum_predictor_bool", false, "If true then do SIMPLE transfers.");
+
   return params;
 }
 
@@ -184,7 +186,8 @@ CustomTransient::CustomTransient(const InputParameters & parameters)
     _solution_change_norm_custom(declareRecoverableData<Real>("solution_change_norm_custom", 0.0)),
     _sln_diff(_nl.addVector("sln_diff", false, PARALLEL)),
     _normalize_solution_diff_norm_by_dt(getParam<bool>("normalize_solution_diff_norm_by_dt")),
-    _verbose_print(getParam<bool>("verbose_print"))
+    _verbose_print(getParam<bool>("verbose_print")),
+    _momentum_predictor_bool(getParam<bool>("momentum_predictor_bool"))
 {
   _fixed_point_solve->setInnerSolve(_feproblem_solve);
 
@@ -222,6 +225,7 @@ CustomTransient::CustomTransient(const InputParameters & parameters)
     if (_num_steps == 0) // Always do one step in the first half
       _num_steps = 1;
   }
+
 }
 
 void
@@ -471,214 +475,246 @@ CustomTransient::postStep()
   //   }
   // }
 
-  MPI_Comm comm = MPI_COMM_WORLD;
-  // Create vectors
-  VecCreate(comm, &_Ainv);
-  VecCreate(comm, &_Hu);
-  VecCreate(comm, &_rhs);
-
-  // Set Sizes
-  VecSetSizes(_Ainv, active_elements*mesh_dimension, PETSC_DECIDE);
-  VecSetSizes(_Hu, active_elements*mesh_dimension, PETSC_DECIDE);
-  VecSetSizes(_rhs, active_elements*mesh_dimension, PETSC_DECIDE);
-
-  // Set types
-  VecSetFromOptions(_Ainv);
-  VecSetFromOptions(_Hu);
-  VecSetFromOptions(_rhs);
-
-  // Assign zero to all entries
-  VecZeroEntries(_Ainv);
-  VecZeroEntries(_Hu);
-  VecZeroEntries(_rhs);
-
-  // Print if verbose
-  // if(_verbose_print)
-  // {
-  //   std::cout << "Ainv: " << std::endl;
-  //   VecView(_Ainv, PETSC_VIEWER_STDOUT_WORLD);
-  //   std::cout << "Hu: " << std::endl;
-  //   VecView(_Hu, PETSC_VIEWER_STDOUT_WORLD);
-  //   std::cout << "rhs: " << std::endl;
-  //   VecView(_rhs, PETSC_VIEWER_STDOUT_WORLD);
-  // }
-
-
-  // ** Asigning Ainv
-  // Get Diagonal of A
-  //PetscScalar loc_value;
-  NumericVector<Number> * loc_residual = isys.rhs;
-  PetscVector<Number> * ploc_residual = dynamic_cast<PetscVector<Number> *>(loc_residual);
-  VecDuplicate(ploc_residual->vec(), &_Ainv);
-  MatGetDiagonal(pmat->mat(), _Ainv);
-  VecDuplicate(ploc_residual->vec(), &vec_dummy);
-  VecSet(vec_dummy, 1.0);
-  VecPointwiseDivide(_Ainv, vec_dummy, _Ainv);
-  if(_verbose_print)
+  if(! _momentum_predictor_bool)
   {
-    std::cout << "Ainv: " << std::endl;
-    VecView(_Ainv, PETSC_VIEWER_STDOUT_WORLD);
-  }
 
-  // if(_verbose_print)
-  // {
-  //   std::cout << "Holder: " << std::endl;
-  //   VecView(holder, PETSC_VIEWER_STDOUT_WORLD);
-  // }
-  //
-  // PetscInt loc_dim = 0, loc_index = 0;
-  // if(mesh_dimension > loc_dim)
-  // {
-  //   VecAssemblyBegin(_Ainv_x);
-  //   for (PetscInt i = 0;
-  //        i <= active_elements;
-  //        i++)
-  //   {
-  //     loc_index = i*mesh_dimension;
-  //     VecGetValues(holder, 1, &loc_index, &loc_value);
-  //     VecSetValues(_Ainv_x, 1, &i, &loc_value, INSERT_VALUES);
-  //   }
-  //   VecAssemblyEnd(_Ainv_x);
-  //   if(_verbose_print)
-  //   {
-  //     std::cout << "_Ainv_x: " << std::endl;
-  //     VecView(_Ainv_x, PETSC_VIEWER_STDOUT_WORLD);
-  //   }
-  // }
-  // loc_dim = 1;
-  // if(mesh_dimension > loc_dim)
-  // {
-  //   VecAssemblyBegin(_Ainv_y);
-  //   for (PetscInt i = 0;
-  //        i <= active_elements;
-  //        i++)
-  //   {
-  //     loc_index = i*mesh_dimension+1;
-  //     VecGetValues(holder, 1, &loc_index, &loc_value);
-  //     VecSetValues(_Ainv_y, 1, &i, &loc_value, INSERT_VALUES);
-  //   }
-  //   VecAssemblyEnd(_Ainv_y);
-  //   if(_verbose_print)
-  //   {
-  //     std::cout << "_Ainv_y: " << std::endl;
-  //     VecView(_Ainv_y, PETSC_VIEWER_STDOUT_WORLD);
-  //   }
-  // }
-  // loc_dim = 2;
-  // if(mesh_dimension > loc_dim)
-  // {
-  //   for (PetscInt i = 0;
-  //        i <= active_elements;
-  //        i++)
-  //   {
-  //     loc_index = i*mesh_dimension+2;
-  //     VecGetValues(holder, 1, &loc_index, &loc_value);
-  //     VecSetValues(_Ainv_z, 1, &i, &loc_value, INSERT_VALUES);
-  //   }
-  //   VecAssemblyEnd(_Ainv_z);
-  //   if(_verbose_print)
-  //   {
-  //     std::cout << "_Ainv_z: " << std::endl;
-  //     VecView(_Ainv_z, PETSC_VIEWER_STDOUT_WORLD);
-  //   }
-  // }
+    VecCreate(MPI_COMM_WORLD, &_rhs);
+    VecSetSizes(_rhs, active_elements, PETSC_DECIDE);
+    VecSetFromOptions(_rhs);
+    VecZeroEntries(_rhs);
 
-  // Creating HU
-  MatDuplicate(pmat->mat(), MAT_COPY_VALUES, &MC);
-  VecZeroEntries(vec_dummy);
-  MatDiagonalSet(MC, vec_dummy, INSERT_VALUES);
-  if(_verbose_print)
+    std::unique_ptr<NumericVector<Number>> zero_sol = isys.rhs->zero_clone();
+    std::unique_ptr<NumericVector<Number>> zero_rhs = isys.rhs->zero_clone();
+
+    feProblem().computeResidualSys(isys, *zero_sol.get(), *zero_rhs.get());
+    PetscVector<Number> * prhs = dynamic_cast<PetscVector<Number> *>(zero_rhs.get());
+    VecCopy(prhs->vec(), _rhs);
+
+    VecScale(_rhs, -1.0);
+
+    if(_verbose_print)
+    {
+      std::cout << "RHS: " << std::endl;
+      VecView(_rhs, PETSC_VIEWER_STDOUT_WORLD);
+    }
+
+    VecDestroy(&_Ainv);
+    VecDestroy(&_Hu);
+    VecDestroy(&_rhs);
+    VecDestroy(&vec_dummy);
+    MatDestroy(&MC);
+
+  } else
+
   {
-    std::cout << "H matrix: " << std::endl;
-    MatView(MC, PETSC_VIEWER_STDOUT_WORLD);
-  }
-  NumericVector<Number> * loc_solution = isys.solution.get();
-  PetscVector<Number> * ploc_solution = dynamic_cast<PetscVector<Number> *>(loc_solution);
-  // if(_verbose_print)
-  // {
-  //   std::cout << "RHS: " << std::endl;
-  //   VecView(ploc_solution->vec(), PETSC_VIEWER_STDOUT_WORLD);
-  // }
-  VecDuplicate(vec_dummy, &_Hu);
-  MatMult(MC, ploc_solution->vec(), _Hu);
-  //VecPointwiseMult(_Hu, _Hu, _Ainv);
-  //VecScale(_Hu, -1.0);
-  if (_verbose_print)
-  {
-    std::cout << "_Hu: " << std::endl;
-    VecView(_Hu, PETSC_VIEWER_STDOUT_WORLD);
-  }
+    MPI_Comm comm = MPI_COMM_WORLD;
+    // Create vectors
+    VecCreate(comm, &_Ainv);
+    VecCreate(comm, &_Hu);
+    VecCreate(comm, &_rhs);
 
-  // loc_dim = 0;
-  // if(mesh_dimension > loc_dim)
-  // {
-  //   VecAssemblyBegin(_Hu_x);
-  //   for (PetscInt i = 0;
-  //        i <= active_elements;
-  //        i++)
-  //   {
-  //     loc_index = i*mesh_dimension;
-  //     VecGetValues(_Hu_global, 1, &loc_index, &loc_value);
-  //     VecSetValues(_Hu_x, 1, &i, &loc_value, INSERT_VALUES);
-  //   }
-  //   VecAssemblyEnd(_Hu_x);
-  //   if(_verbose_print)
-  //   {
-  //     std::cout << "_Hu_x: " << std::endl;
-  //     VecView(_Hu_x, PETSC_VIEWER_STDOUT_WORLD);
-  //   }
-  // }
-  // loc_dim = 1;
-  // if(mesh_dimension > loc_dim)
-  // {
-  //   VecAssemblyBegin(_Hu_y);
-  //   for (PetscInt i = 0;
-  //        i <= active_elements;
-  //        i++)
-  //   {
-  //     loc_index = i*mesh_dimension+1;
-  //     VecGetValues(_Hu_global, 1, &loc_index, &loc_value);
-  //     VecSetValues(_Hu_y, 1, &i, &loc_value, INSERT_VALUES);
-  //   }
-  //   VecAssemblyEnd(_Hu_y);
-  //   if(_verbose_print)
-  //   {
-  //     std::cout << "_Hu_y: " << std::endl;
-  //     VecView(_Hu_y, PETSC_VIEWER_STDOUT_WORLD);
-  //   }
-  // }
-  // loc_dim = 2;
-  // if(mesh_dimension > loc_dim)
-  // {
-  //   VecAssemblyBegin(_Hu_z);
-  //   for (PetscInt i = 0;
-  //        i <= active_elements;
-  //        i++)
-  //   {
-  //     loc_index = i*mesh_dimension+2;
-  //     VecGetValues(_Hu_global, 1, &loc_index, &loc_value);
-  //     VecSetValues(_Hu_z, 1, &i, &loc_value, INSERT_VALUES);
-  //   }
-  //   VecAssemblyEnd(_Hu_z);
-  //   if(_verbose_print)
-  //   {
-  //     std::cout << "_Hu_z: " << std::endl;
-  //     VecView(_Hu_z, PETSC_VIEWER_STDOUT_WORLD);
-  //   }
-  // }
+    // Set Sizes
+    VecSetSizes(_Ainv, active_elements*mesh_dimension, PETSC_DECIDE);
+    VecSetSizes(_Hu, active_elements*mesh_dimension, PETSC_DECIDE);
+    VecSetSizes(_rhs, active_elements*mesh_dimension, PETSC_DECIDE);
 
-  // Getting RHS
-  std::unique_ptr<NumericVector<Number>> zero_sol = isys.rhs->zero_clone();
-  std::unique_ptr<NumericVector<Number>> zero_rhs = isys.rhs->zero_clone();
-  feProblem().computeResidualSys(isys, *zero_sol.get(), *zero_rhs.get());
-  PetscVector<Number> * prhs = dynamic_cast<PetscVector<Number> *>(zero_rhs.get());
-  VecCopy(prhs->vec(), _rhs);
-  VecScale(_rhs, -1.0);
-  if(_verbose_print)
-  {
-    std::cout << "RHS: " << std::endl;
-    VecView(_rhs, PETSC_VIEWER_STDOUT_WORLD);
-  }
+    // Set types
+    VecSetFromOptions(_Ainv);
+    VecSetFromOptions(_Hu);
+    VecSetFromOptions(_rhs);
+
+    // Assign zero to all entries
+    VecZeroEntries(_Ainv);
+    VecZeroEntries(_Hu);
+    VecZeroEntries(_rhs);
+
+    // Print if verbose
+    // if(_verbose_print)
+    // {
+    //   std::cout << "Ainv: " << std::endl;
+    //   VecView(_Ainv, PETSC_VIEWER_STDOUT_WORLD);
+    //   std::cout << "Hu: " << std::endl;
+    //   VecView(_Hu, PETSC_VIEWER_STDOUT_WORLD);
+    //   std::cout << "rhs: " << std::endl;
+    //   VecView(_rhs, PETSC_VIEWER_STDOUT_WORLD);
+    // }
+
+
+    // ** Asigning Ainv
+    // Get Diagonal of A
+    //PetscScalar loc_value;
+    NumericVector<Number> * loc_residual = isys.rhs;
+    PetscVector<Number> * ploc_residual = dynamic_cast<PetscVector<Number> *>(loc_residual);
+    VecDuplicate(ploc_residual->vec(), &_Ainv);
+    MatGetDiagonal(pmat->mat(), _Ainv);
+    VecDuplicate(ploc_residual->vec(), &vec_dummy);
+    VecSet(vec_dummy, 1.0);
+    VecPointwiseDivide(_Ainv, vec_dummy, _Ainv);
+    if(_verbose_print)
+    {
+      std::cout << "Ainv: " << std::endl;
+      VecView(_Ainv, PETSC_VIEWER_STDOUT_WORLD);
+    }
+
+    // if(_verbose_print)
+    // {
+    //   std::cout << "Holder: " << std::endl;
+    //   VecView(holder, PETSC_VIEWER_STDOUT_WORLD);
+    // }
+    //
+    // PetscInt loc_dim = 0, loc_index = 0;
+    // if(mesh_dimension > loc_dim)
+    // {
+    //   VecAssemblyBegin(_Ainv_x);
+    //   for (PetscInt i = 0;
+    //        i <= active_elements;
+    //        i++)
+    //   {
+    //     loc_index = i*mesh_dimension;
+    //     VecGetValues(holder, 1, &loc_index, &loc_value);
+    //     VecSetValues(_Ainv_x, 1, &i, &loc_value, INSERT_VALUES);
+    //   }
+    //   VecAssemblyEnd(_Ainv_x);
+    //   if(_verbose_print)
+    //   {
+    //     std::cout << "_Ainv_x: " << std::endl;
+    //     VecView(_Ainv_x, PETSC_VIEWER_STDOUT_WORLD);
+    //   }
+    // }
+    // loc_dim = 1;
+    // if(mesh_dimension > loc_dim)
+    // {
+    //   VecAssemblyBegin(_Ainv_y);
+    //   for (PetscInt i = 0;
+    //        i <= active_elements;
+    //        i++)
+    //   {
+    //     loc_index = i*mesh_dimension+1;
+    //     VecGetValues(holder, 1, &loc_index, &loc_value);
+    //     VecSetValues(_Ainv_y, 1, &i, &loc_value, INSERT_VALUES);
+    //   }
+    //   VecAssemblyEnd(_Ainv_y);
+    //   if(_verbose_print)
+    //   {
+    //     std::cout << "_Ainv_y: " << std::endl;
+    //     VecView(_Ainv_y, PETSC_VIEWER_STDOUT_WORLD);
+    //   }
+    // }
+    // loc_dim = 2;
+    // if(mesh_dimension > loc_dim)
+    // {
+    //   for (PetscInt i = 0;
+    //        i <= active_elements;
+    //        i++)
+    //   {
+    //     loc_index = i*mesh_dimension+2;
+    //     VecGetValues(holder, 1, &loc_index, &loc_value);
+    //     VecSetValues(_Ainv_z, 1, &i, &loc_value, INSERT_VALUES);
+    //   }
+    //   VecAssemblyEnd(_Ainv_z);
+    //   if(_verbose_print)
+    //   {
+    //     std::cout << "_Ainv_z: " << std::endl;
+    //     VecView(_Ainv_z, PETSC_VIEWER_STDOUT_WORLD);
+    //   }
+    // }
+
+    // Creating HU
+    MatDuplicate(pmat->mat(), MAT_COPY_VALUES, &MC);
+    VecZeroEntries(vec_dummy);
+    MatDiagonalSet(MC, vec_dummy, INSERT_VALUES);
+    if(_verbose_print)
+    {
+      std::cout << "H matrix: " << std::endl;
+      MatView(MC, PETSC_VIEWER_STDOUT_WORLD);
+    }
+    NumericVector<Number> * loc_solution = isys.solution.get();
+    PetscVector<Number> * ploc_solution = dynamic_cast<PetscVector<Number> *>(loc_solution);
+    // if(_verbose_print)
+    // {
+    //   std::cout << "RHS: " << std::endl;
+    //   VecView(ploc_solution->vec(), PETSC_VIEWER_STDOUT_WORLD);
+    // }
+    VecDuplicate(vec_dummy, &_Hu);
+    MatMult(MC, ploc_solution->vec(), _Hu);
+    //VecPointwiseMult(_Hu, _Hu, _Ainv);
+    //VecScale(_Hu, -1.0);
+    if (_verbose_print)
+    {
+      std::cout << "_Hu: " << std::endl;
+      VecView(_Hu, PETSC_VIEWER_STDOUT_WORLD);
+    }
+
+    // loc_dim = 0;
+    // if(mesh_dimension > loc_dim)
+    // {
+    //   VecAssemblyBegin(_Hu_x);
+    //   for (PetscInt i = 0;
+    //        i <= active_elements;
+    //        i++)
+    //   {
+    //     loc_index = i*mesh_dimension;
+    //     VecGetValues(_Hu_global, 1, &loc_index, &loc_value);
+    //     VecSetValues(_Hu_x, 1, &i, &loc_value, INSERT_VALUES);
+    //   }
+    //   VecAssemblyEnd(_Hu_x);
+    //   if(_verbose_print)
+    //   {
+    //     std::cout << "_Hu_x: " << std::endl;
+    //     VecView(_Hu_x, PETSC_VIEWER_STDOUT_WORLD);
+    //   }
+    // }
+    // loc_dim = 1;
+    // if(mesh_dimension > loc_dim)
+    // {
+    //   VecAssemblyBegin(_Hu_y);
+    //   for (PetscInt i = 0;
+    //        i <= active_elements;
+    //        i++)
+    //   {
+    //     loc_index = i*mesh_dimension+1;
+    //     VecGetValues(_Hu_global, 1, &loc_index, &loc_value);
+    //     VecSetValues(_Hu_y, 1, &i, &loc_value, INSERT_VALUES);
+    //   }
+    //   VecAssemblyEnd(_Hu_y);
+    //   if(_verbose_print)
+    //   {
+    //     std::cout << "_Hu_y: " << std::endl;
+    //     VecView(_Hu_y, PETSC_VIEWER_STDOUT_WORLD);
+    //   }
+    // }
+    // loc_dim = 2;
+    // if(mesh_dimension > loc_dim)
+    // {
+    //   VecAssemblyBegin(_Hu_z);
+    //   for (PetscInt i = 0;
+    //        i <= active_elements;
+    //        i++)
+    //   {
+    //     loc_index = i*mesh_dimension+2;
+    //     VecGetValues(_Hu_global, 1, &loc_index, &loc_value);
+    //     VecSetValues(_Hu_z, 1, &i, &loc_value, INSERT_VALUES);
+    //   }
+    //   VecAssemblyEnd(_Hu_z);
+    //   if(_verbose_print)
+    //   {
+    //     std::cout << "_Hu_z: " << std::endl;
+    //     VecView(_Hu_z, PETSC_VIEWER_STDOUT_WORLD);
+    //   }
+    // }
+
+    // Getting RHS
+    std::unique_ptr<NumericVector<Number>> zero_sol = isys.rhs->zero_clone();
+    std::unique_ptr<NumericVector<Number>> zero_rhs = isys.rhs->zero_clone();
+    feProblem().computeResidualSys(isys, *zero_sol.get(), *zero_rhs.get());
+    PetscVector<Number> * prhs = dynamic_cast<PetscVector<Number> *>(zero_rhs.get());
+    VecCopy(prhs->vec(), _rhs);
+    VecScale(_rhs, -1.0);
+    if(_verbose_print)
+    {
+      std::cout << "RHS: " << std::endl;
+      VecView(_rhs, PETSC_VIEWER_STDOUT_WORLD);
+    }
 
     // loc_dim = 0;
     // if(mesh_dimension > loc_dim)
@@ -737,7 +773,6 @@ CustomTransient::postStep()
     //     VecView(_rhs_z, PETSC_VIEWER_STDOUT_WORLD);
     //   }
     // }
-
 
     // Inserting variables into the auxiliary system
     AuxiliarySystem & aux_sys = feProblem().getAuxiliarySystem();
@@ -858,6 +893,7 @@ CustomTransient::postStep()
     VecDestroy(&vec_dummy);
     MatDestroy(&MC);
     aux_sys.solution().close();
+  }
 
 
     // insert Ainv into Aux

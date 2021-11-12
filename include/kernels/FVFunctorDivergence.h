@@ -25,4 +25,5 @@ protected:
   const Moose::Functor<ADReal> & _x;
   const Moose::Functor<ADReal> & _y;
   const Moose::Functor<ADReal> & _z;
+  //const Elem * const & _current_elem;;
 };

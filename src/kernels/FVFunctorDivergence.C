@@ -32,6 +32,7 @@ FVFunctorDivergence::FVFunctorDivergence(const InputParameters & parameters)
     _x(getFunctor<ADReal>("x_functor")),
     _y(getFunctor<ADReal>("y_functor")),
     _z(getFunctor<ADReal>("z_functor"))
+    //_current_elem(_assembly.elem())
 {
 }
 
