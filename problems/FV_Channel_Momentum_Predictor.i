@@ -12,9 +12,9 @@ velocity_interp_method='average'
     nx = 3
     ny = 3
     xmin = 0.0
-    xmax = 3.0
+    xmax = 0.3
     ymin = 0.0
-    ymax = 3.0
+    ymax = 0.3
   []
 []
 
@@ -168,6 +168,50 @@ velocity_interp_method='average'
   [outlet_v]
     type = INSFVMomentumAdvectionOutflowBC
     variable = v
+    advected_quantity = 'rhov'
+    vel = 'velocity'
+    advected_interp_method = ${advected_interp_method}
+    u = u_adv
+    v = v_adv
+    boundary = 'right'
+  []
+  [inlet-u-adv]
+    type = INSFVInletVelocityBC
+    boundary = 'left'
+    variable = u_adv
+    function = ${U}
+  []
+  [inlet-v-adv]
+    type = INSFVInletVelocityBC
+    boundary = 'left'
+    variable = v_adv
+    function = '0'
+  []
+  [walls-u-adv]
+    type = INSFVNoSlipWallBC
+    boundary = 'top bottom'
+    variable = u_adv
+    function = 0
+  []
+  [walls-v-adv]
+    type = INSFVNoSlipWallBC
+    boundary = 'top bottom'
+    variable = v_adv
+    function = 0
+  []
+  [outlet_u-adv]
+    type = INSFVMomentumAdvectionOutflowBC
+    variable = u_adv
+    advected_quantity = 'rhou'
+    vel = 'velocity'
+    advected_interp_method = ${advected_interp_method}
+    u = u_adv
+    v = v_adv
+    boundary = 'right'
+  []
+  [outlet_v-adv]
+    type = INSFVMomentumAdvectionOutflowBC
+    variable = v_adv
     advected_quantity = 'rhov'
     vel = 'velocity'
     advected_interp_method = ${advected_interp_method}

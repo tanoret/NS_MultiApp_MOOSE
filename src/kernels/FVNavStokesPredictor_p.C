@@ -558,8 +558,8 @@ FVNavStokesPredictor_p::computeQpResidual()
   this->interpolate(_velocity_interp_method, v);
   Moose::FV::interpolate(_advected_interp_method,
                          adv_quant_interface,
-                         _adv_quant(elem_face),
-                         _adv_quant(neighbor_face),
+                         _rho(elem_face) * _var(elem_face),
+                         _rho(neighbor_face) * _var(neighbor_face),
                          v,
                          *_face_info,
                          true);

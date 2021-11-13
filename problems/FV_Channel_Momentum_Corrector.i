@@ -12,9 +12,9 @@ velocity_interp_method='average'
     nx = 3
     ny = 3
     xmin = 0.0
-    xmax = 3.0
+    xmax = 0.3
     ymin = 0.0
-    ymax = 3.0
+    ymax = 0.3
   []
 []
 
@@ -76,50 +76,50 @@ velocity_interp_method='average'
   []
 
 [FVBCs]
-  [inlet-u]
-    type = INSFVInletVelocityBC
-    boundary = 'left'
-    variable = u_adv_corr
-    function = ${U}
-  []
-  [inlet-v]
-    type = INSFVInletVelocityBC
-    boundary = 'left'
-    variable = v_adv_corr
-    function = '0'
-  []
-  [walls-u]
-    type = INSFVNoSlipWallBC
-    boundary = 'top bottom'
-    variable = u_adv_corr
-    function = 0
-  []
-  [walls-v]
-    type = INSFVNoSlipWallBC
-    boundary = 'top bottom'
-    variable = v_adv_corr
-    function = 0
-  []
-  [outlet_u]
-    type = INSFVMomentumAdvectionOutflowBC
-    variable = u_adv_corr
-    advected_quantity = 'rhou'
-    vel = 'velocity'
-    advected_interp_method = ${advected_interp_method}
-    u = u_adv_corr
-    v = v_adv_corr
-    boundary = 'right'
-  []
-  [outlet_v]
-    type = INSFVMomentumAdvectionOutflowBC
-    variable = v_adv_corr
-    advected_quantity = 'rhov'
-    vel = 'velocity'
-    advected_interp_method = ${advected_interp_method}
-    u = u_adv_corr
-    v = v_adv_corr
-    boundary = 'right'
-  []
+  # [inlet-u]
+  #   type = INSFVInletVelocityBC
+  #   boundary = 'left'
+  #   variable = u_adv_corr
+  #   function = ${U}
+  # []
+  # [inlet-v]
+  #   type = INSFVInletVelocityBC
+  #   boundary = 'left'
+  #   variable = v_adv_corr
+  #   function = '0'
+  # []
+  # [walls-u]
+  #   type = INSFVNoSlipWallBC
+  #   boundary = 'top bottom'
+  #   variable = u_adv_corr
+  #   function = 0
+  # []
+  # [walls-v]
+  #   type = INSFVNoSlipWallBC
+  #   boundary = 'top bottom'
+  #   variable = v_adv_corr
+  #   function = 0
+  # []
+  # [outlet_u]
+  #   type = INSFVMomentumAdvectionOutflowBC
+  #   variable = u_adv_corr
+  #   advected_quantity = 'rhou'
+  #   vel = 'velocity'
+  #   advected_interp_method = ${advected_interp_method}
+  #   u = u_adv_corr
+  #   v = v_adv_corr
+  #   boundary = 'right'
+  # []
+  # [outlet_v]
+  #   type = INSFVMomentumAdvectionOutflowBC
+  #   variable = v_adv_corr
+  #   advected_quantity = 'rhov'
+  #   vel = 'velocity'
+  #   advected_interp_method = ${advected_interp_method}
+  #   u = u_adv_corr
+  #   v = v_adv_corr
+  #   boundary = 'right'
+  # []
 []
 
 [Materials]
@@ -132,7 +132,41 @@ velocity_interp_method='average'
   []
 []
 
+[Preconditioning]
+  [./SMP]
+    type = SMP
+    full = true
+    solve_type = 'NEWTON'
+  [../]
+[]
+
 [Executioner]
   type = Transient
-  solve_type = 'LINEAR'
+  #num_steps = 50
+  #dt = .1
+  #dtmin = .1
+
+  #petsc_options_iname = '-pc_type'
+  #petsc_options_value = 'lu'
+
+  #line_search = 'none'
+  nl_rel_tol = 1e-7
+  nl_abs_tol = 1e-8
+  nl_max_its = 6
+  l_tol = 1e-6
+  l_max_its = 500
+[]
+
+# [Executioner]
+#   type = Transient
+#   solve_type = 'NEWTON'
+#   # petsc_options = '-pc_svd_monitor'
+#   # petsc_options_iname = '-pc_type'
+#   # petsc_options_value = 'svd'
+# []
+
+[Outputs]
+  file_base = channel_corr
+  exodus = true
+  checkpoint = true
 []
