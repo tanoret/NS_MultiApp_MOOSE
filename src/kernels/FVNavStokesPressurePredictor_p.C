@@ -104,29 +104,29 @@ FVNavStokesPressurePredictor_p::computeQpResidual()
   const Elem * const elem = &_face_info->elem();
   const Elem * const neighbor = _face_info->neighborPtr();
 
-  ADRealVectorValue elem_Ainv(_Ainv_x->getElemValue(elem)); // * _face_info->elemVolume());
+  ADRealVectorValue elem_Ainv(_Ainv_x->getElemValue(elem) * _face_info->elemVolume());
   if (_Ainv_y)
-    elem_Ainv(1) = _Ainv_y->getElemValue(elem); //* _face_info->elemVolume();
+    elem_Ainv(1) = _Ainv_y->getElemValue(elem) * _face_info->elemVolume();
   if (_Ainv_z)
-    elem_Ainv(2) = _Ainv_z->getElemValue(elem); //* _face_info->elemVolume();
+    elem_Ainv(2) = _Ainv_z->getElemValue(elem) * _face_info->elemVolume();
 
   mooseAssert((neighbor == &_face_info->elem()) || (neighbor == _face_info->neighborPtr()),
               "Surely the neighbor has to match one of the face information's elements, right?");
 
-  ADRealVectorValue neighbor_Ainv(_Ainv_x->getNeighborValue(neighbor, *_face_info, elem_Ainv(0))); //* _face_info->neighborVolume());
+  ADRealVectorValue neighbor_Ainv(_Ainv_x->getNeighborValue(neighbor, *_face_info, elem_Ainv(0)) * _face_info->neighborVolume());
   if (_Ainv_y)
-    neighbor_Ainv(1) = _Ainv_y->getNeighborValue(neighbor, *_face_info, elem_Ainv(1)); //* _face_info->neighborVolume();
+    neighbor_Ainv(1) = _Ainv_y->getNeighborValue(neighbor, *_face_info, elem_Ainv(1)) * _face_info->neighborVolume();
   if (_Ainv_z)
-    neighbor_Ainv(2) = _Ainv_z->getNeighborValue(neighbor, *_face_info, elem_Ainv(2)); //* _face_info->neighborVolume();
+    neighbor_Ainv(2) = _Ainv_z->getNeighborValue(neighbor, *_face_info, elem_Ainv(2)) * _face_info->neighborVolume();
 
   ADRealVectorValue interp_Ainv_face;
   if (onBoundary(*_face_info))
   {
-    interp_Ainv_face(0) = _Ainv_x->getBoundaryFaceValue(*_face_info); //* _assembly.elemVolume();
+    interp_Ainv_face(0) = _Ainv_x->getBoundaryFaceValue(*_face_info) * _assembly.elemVolume();
     if (_Ainv_y)
-      interp_Ainv_face(1) = _Ainv_y->getBoundaryFaceValue(*_face_info); //* _assembly.elemVolume();
+      interp_Ainv_face(1) = _Ainv_y->getBoundaryFaceValue(*_face_info) * _assembly.elemVolume();
     if (_Ainv_z)
-      interp_Ainv_face(2) = _Ainv_z->getBoundaryFaceValue(*_face_info); //* _assembly.elemVolume();
+      interp_Ainv_face(2) = _Ainv_z->getBoundaryFaceValue(*_face_info) * _assembly.elemVolume();
   }
   else
     Moose::FV::interpolate(Moose::FV::InterpMethod::Average,

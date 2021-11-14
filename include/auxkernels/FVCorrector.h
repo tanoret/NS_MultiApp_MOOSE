@@ -50,5 +50,6 @@ protected:
   /// Access to current direction
   const unsigned int _index;
   const Real _pressure_relaxation;
+  const VariableValue & _u_old;
 
 };

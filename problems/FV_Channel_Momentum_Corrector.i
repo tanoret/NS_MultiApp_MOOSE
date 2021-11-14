@@ -12,9 +12,9 @@ velocity_interp_method='average'
     nx = 3
     ny = 3
     xmin = 0.0
-    xmax = 0.3
+    xmax = 3.0
     ymin = 0.0
-    ymax = 0.3
+    ymax = 3.0
   []
 []
 

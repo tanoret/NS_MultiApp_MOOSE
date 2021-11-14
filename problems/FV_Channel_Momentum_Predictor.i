@@ -12,9 +12,9 @@ velocity_interp_method='average'
     nx = 3
     ny = 3
     xmin = 0.0
-    xmax = 0.3
+    xmax = 3.0
     ymin = 0.0
-    ymax = 0.3
+    ymax = 3.0
   []
 []
 
@@ -175,50 +175,6 @@ velocity_interp_method='average'
     v = v_adv
     boundary = 'right'
   []
-  [inlet-u-adv]
-    type = INSFVInletVelocityBC
-    boundary = 'left'
-    variable = u_adv
-    function = ${U}
-  []
-  [inlet-v-adv]
-    type = INSFVInletVelocityBC
-    boundary = 'left'
-    variable = v_adv
-    function = '0'
-  []
-  [walls-u-adv]
-    type = INSFVNoSlipWallBC
-    boundary = 'top bottom'
-    variable = u_adv
-    function = 0
-  []
-  [walls-v-adv]
-    type = INSFVNoSlipWallBC
-    boundary = 'top bottom'
-    variable = v_adv
-    function = 0
-  []
-  [outlet_u-adv]
-    type = INSFVMomentumAdvectionOutflowBC
-    variable = u_adv
-    advected_quantity = 'rhou'
-    vel = 'velocity'
-    advected_interp_method = ${advected_interp_method}
-    u = u_adv
-    v = v_adv
-    boundary = 'right'
-  []
-  [outlet_v-adv]
-    type = INSFVMomentumAdvectionOutflowBC
-    variable = v_adv
-    advected_quantity = 'rhov'
-    vel = 'velocity'
-    advected_interp_method = ${advected_interp_method}
-    u = u_adv
-    v = v_adv
-    boundary = 'right'
-  []
 []
 
 [Materials]
@@ -255,18 +211,17 @@ velocity_interp_method='average'
   #petsc_options_value = 'asm      2               ilu          4'
   #line_search = 'none'
 
-  #nl_rel_tol = 1e-8
-  #nl_abs_tol = 1e-9
-  #nl_max_its = 40
-  custom_rel_tol = 1e-30
-  custom_abs_tol = 1e-6
-  l_max_its = 50
+  nl_rel_tol = 1e-8
+  nl_abs_tol = 1e-9
+  nl_max_its = 40
+  l_tol = 1e-8
+  l_max_its = 500
 
-  verbose_print = false
   momentum_predictor_bool = true
+  verbose_print = true
 []
 
-# [Outputs]
-#   file_base = channel_sub
-#   exodus = true
-# []
+[Outputs]
+  file_base = channel_sub
+  exodus = true
+[]

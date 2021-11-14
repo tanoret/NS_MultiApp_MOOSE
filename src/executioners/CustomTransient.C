@@ -371,11 +371,6 @@ CustomTransient::postStep()
   // VecDestroy(&xvec);
   // VecDestroy(&yvec);
 
-  // Declarations
-  Vec _Ainv, _Hu, _rhs;
-  Vec vec_dummy;
-  Mat MC;
-
   // Getting handlers
   PetscInt mesh_dimension  = feProblem().mesh().dimension();
   PetscInt active_elements = static_cast<PetscInt>(feProblem().mesh().getMesh().n_active_elem());
@@ -478,36 +473,43 @@ CustomTransient::postStep()
   if(! _momentum_predictor_bool)
   {
 
-    VecCreate(MPI_COMM_WORLD, &_rhs);
-    VecSetSizes(_rhs, active_elements, PETSC_DECIDE);
-    VecSetFromOptions(_rhs);
-    VecZeroEntries(_rhs);
+    Vec _rhs_loc;
+    MPI_Comm comm = MPI_COMM_WORLD;
 
-    std::unique_ptr<NumericVector<Number>> zero_sol = isys.rhs->zero_clone();
-    std::unique_ptr<NumericVector<Number>> zero_rhs = isys.rhs->zero_clone();
+    VecCreate(comm, &_rhs_loc);
+    VecSetSizes(_rhs_loc, active_elements, PETSC_DECIDE);
+    VecSetFromOptions(_rhs_loc);
+    VecZeroEntries(_rhs_loc);
 
-    feProblem().computeResidualSys(isys, *zero_sol.get(), *zero_rhs.get());
-    PetscVector<Number> * prhs = dynamic_cast<PetscVector<Number> *>(zero_rhs.get());
-    VecCopy(prhs->vec(), _rhs);
+    std::unique_ptr<NumericVector<Number>> loc_zero_sol = isys.rhs->zero_clone();
+    std::unique_ptr<NumericVector<Number>> loc_zero_rhs = isys.rhs->zero_clone();
 
-    VecScale(_rhs, -1.0);
+    feProblem().computeResidualSys(isys, *loc_zero_sol.get(), *loc_zero_rhs.get());
+    PetscVector<Number> * loc_prhs = dynamic_cast<PetscVector<Number> *>(loc_zero_sol.get());
+    VecCopy(loc_prhs->vec(), _rhs_loc);
+
+    VecScale(_rhs_loc, -1.0);
 
     if(_verbose_print)
     {
       std::cout << "RHS: " << std::endl;
-      VecView(_rhs, PETSC_VIEWER_STDOUT_WORLD);
+      VecView(_rhs_loc, PETSC_VIEWER_STDOUT_WORLD);
     }
 
-    VecDestroy(&_Ainv);
-    VecDestroy(&_Hu);
-    VecDestroy(&_rhs);
-    VecDestroy(&vec_dummy);
-    MatDestroy(&MC);
+    VecDestroy(&_rhs_loc);
+    //feProblem().getAuxiliarySystem().solution().close();
+
+    std::cout << "Tutto bene." << std::endl;
 
   } else
 
   {
+    // Declaration
+    Vec _Ainv, _Hu, _rhs;
+    Vec vec_dummy;
+    Mat MC;
     MPI_Comm comm = MPI_COMM_WORLD;
+
     // Create vectors
     VecCreate(comm, &_Ainv);
     VecCreate(comm, &_Hu);

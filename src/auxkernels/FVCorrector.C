@@ -69,7 +69,8 @@ FVCorrector::FVCorrector(const InputParameters & parameters)
     _index(getParam<MooseEnum>("momentum_component")),
 
     // Get pressure relaxation factor
-    _pressure_relaxation(getParam<Real>("pressure_relaxation"))
+    _pressure_relaxation(getParam<Real>("pressure_relaxation")),
+    _u_old(uOld())
 {
 }
 
@@ -79,8 +80,7 @@ FVCorrector::computeValue()
   /// Diffusion term
   using namespace Moose::FV;
 
-  auto new_pressure_grad = _pressure_relaxation * _p_var->adGradSln(_current_elem)(_index)
-                           + (1. - _pressure_relaxation) * _p_old->adGradSln(_current_elem)(_index);
+  auto new_pressure_grad = _p_var->adGradSln(_current_elem)(_index);
 
   std::cout << "Grad: " << new_pressure_grad << std::endl;
 
@@ -90,5 +90,12 @@ FVCorrector::computeValue()
   // Assign new expression because we will be returning its value
   auto _new_vel = _Hhat->getElemValue(_current_elem) - _p_term;
 
-  return _new_vel.value();
+  auto _old_vel = _u_old[_qp];
+
+  std::cout << "Hhat: " << _Hhat->getElemValue(_current_elem).value()
+            << " Press grad: " << _p_term.value()
+            << " New vel: " << _new_vel.value() << std::endl;
+
+  return (_pressure_relaxation) * _new_vel.value() +
+         (1. - _pressure_relaxation) * _old_vel;
 }

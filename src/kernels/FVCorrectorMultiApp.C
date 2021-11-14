@@ -65,10 +65,10 @@ FVCorrectorMultiApp::computeQpResidual()
 
   auto new_pressure_grad = _p_var->adGradSln(_current_elem)(_index);
 
-  // std::cout << "Grad: " << new_pressure_grad << std::endl;
+  std::cout << "P: " << _p_var->getElemValue(_current_elem) << " - Grad: " << new_pressure_grad << std::endl;
 
   // Computing RHS term
-  auto _p_term = _Ainv->getElemValue(_current_elem) * new_pressure_grad; //* _assembly.elemVolume();
+  auto _p_term = _Ainv->getElemValue(_current_elem) * new_pressure_grad * _assembly.elemVolume();
 
   // Assign new expression because we will be returning its value
   auto _new_vel = _Hhat->getElemValue(_current_elem) - _p_term;
@@ -79,6 +79,12 @@ FVCorrectorMultiApp::computeQpResidual()
   // std::cout << "Hhat: " << _Hhat->getElemValue(_current_elem) << std::endl;
   // std::cout << "New Vel: " << _new_vel << std::endl;
   // std::cout << "Relax: " << _advection_relaxation << std::endl;
+
+  // std::cout << "Hhat: " << _Hhat->getElemValue(_current_elem).value()
+  //           << "Pressure: " << _p_var->getElemValue(_current_elem).value()
+  //           << "Pressure grad: " << new_pressure_grad.value()
+  //           << " Ainv Press grad: " << _p_term.value()
+  //           << " New vel: " << _new_vel.value() << "\n" << std::endl;
 
   // Current solution = _new_vel
 
