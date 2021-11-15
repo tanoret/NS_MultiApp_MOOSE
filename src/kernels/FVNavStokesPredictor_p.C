@@ -611,7 +611,7 @@ FVNavStokesPredictor_p::computeQpResidual()
   // if(_is_transient)
   //   const auto time_residual = _rho(_current_elem) * _var.dot(_current_elem);
 
-  return diffusion_residual + pressure_residual; //convection_residual //+ time_residual;
+  return diffusion_residual + pressure_residual + convection_residual; //+ time_residual;
 }
 
 void

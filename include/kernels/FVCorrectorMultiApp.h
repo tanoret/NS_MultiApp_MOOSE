@@ -32,6 +32,9 @@ protected:
   const INSFVPressureVariable * const _p_var;
   const INSFVPressureVariable * const _p_old;
 
+  // Old velocity
+  const INSFVVelocityVariable * const _vel_adv_old;
+
   /// Transfer Variables
   const MooseVariableFVReal * const _Ainv;
   const MooseVariableFVReal * const _Hhat;

@@ -9,8 +9,8 @@ velocity_interp_method='average'
   [gen]
     type = GeneratedMeshGenerator
     dim = 2
-    nx = 200
-    ny = 40
+    nx = 500
+    ny = 100
     xmin = 0.0
     xmax = 5.0
     ymin = 0.0
@@ -38,6 +38,12 @@ velocity_interp_method='average'
   [pressure_old]
     type = INSFVPressureVariable
   []
+  [u_adv_old]
+    type = INSFVVelocityVariable
+  []
+  [v_adv_old]
+    type = INSFVVelocityVariable
+  []
   [Ainv_x]
     type = MooseVariableFVReal
   []
@@ -60,6 +66,7 @@ velocity_interp_method='average'
     pressure_old = pressure_old
     Ainv = Ainv_x
     Hhat = Hhat_x
+    vel_adv_old = u_adv_old
     momentum_component = 'x'
     advection_relaxation = 1.0 # This is the gradient relaxation - try to keep in 1.0
   []
@@ -70,6 +77,7 @@ velocity_interp_method='average'
       pressure_old = pressure_old
       Ainv = Ainv_y
       Hhat = Hhat_y
+      vel_adv_old = v_adv_old
       momentum_component = 'y'
       advection_relaxation = 1.0 # This is the gradient relaxation - try to keep in 1.0
     []

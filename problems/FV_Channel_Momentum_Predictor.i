@@ -9,8 +9,8 @@ velocity_interp_method='average'
   [gen]
     type = GeneratedMeshGenerator
     dim = 2
-    nx = 200
-    ny = 40
+    nx = 500
+    ny = 100
     xmin = 0.0
     xmax = 5.0
     ymin = 0.0

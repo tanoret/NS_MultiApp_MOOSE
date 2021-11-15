@@ -24,6 +24,7 @@ FVCorrectorMultiApp::validParams()
   params.addRequiredCoupledVar("pressure_old", "The pressure variable.");
   params.addRequiredCoupledVar("Ainv", "Ainv from momenutm predictor.");
   params.addRequiredCoupledVar("Hhat", "Hu from momenutm predictor.");
+  params.addRequiredCoupledVar("vel_adv_old", "The old state advection velocity.");
 
   MooseEnum momentum_component("x=0 y=1 z=2");
   params.addRequiredParam<MooseEnum>(
@@ -44,6 +45,9 @@ FVCorrectorMultiApp::FVCorrectorMultiApp(const InputParameters & parameters)
   // Get coupled variables
   _p_var(dynamic_cast<const INSFVPressureVariable *>(getFieldVar("pressure", 0))),
   _p_old(dynamic_cast<const INSFVPressureVariable *>(getFieldVar("pressure_old", 0))),
+
+  // Get old velocity
+  _vel_adv_old(dynamic_cast<const INSFVVelocityVariable *>(getFieldVar("vel_adv_old", 0))),
 
   // Get coupled predictor variables
   _Ainv(dynamic_cast<const MooseVariableFVReal *>(getFieldVar("Ainv", 0))),
@@ -68,7 +72,7 @@ FVCorrectorMultiApp::computeQpResidual()
   // std::cout << "P: " << _p_var->getElemValue(_current_elem) << " - Grad: " << new_pressure_grad << std::endl;
 
   // Computing RHS term
-  auto _p_term = _Ainv->getElemValue(_current_elem) * new_pressure_grad; //* _assembly.elemVolume();
+  auto _p_term = _Ainv->getElemValue(_current_elem) * new_pressure_grad * _assembly.elemVolume();
 
   // Assign new expression because we will be returning its value
   auto _new_vel = _Hhat->getElemValue(_current_elem) - _p_term;
@@ -89,7 +93,7 @@ FVCorrectorMultiApp::computeQpResidual()
   // Current solution = _new_vel
 
   auto residual = _advection_relaxation * _new_vel
-                 + (1 - _advection_relaxation) * _var.getElementalValueOld(_current_elem)
+                 + (1 - _advection_relaxation) * _vel_adv_old->getElemValue(_current_elem) //_var.getElementalValueOld(_current_elem)
                  - _u[_qp];
 
   //std::cout << "Res. der.: " << residual.derivatives() << std::endl;

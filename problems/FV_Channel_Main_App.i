@@ -2,8 +2,8 @@
   [gen]
     type = GeneratedMeshGenerator
     dim = 2
-    nx = 200
-    ny = 40
+    nx = 500
+    ny = 100
     xmin = 0.0
     xmax = 5.0
     ymin = 0.0
@@ -124,28 +124,28 @@
     pressure_old = pressure_old
     pressure_relaxation = 0.3
   []
-  # [corrector_x]
-  #   type = FVCorrector
-  #   variable = u_adv
-  #   execute_on = timestep_end
-  #   pressure = pressure_relaxed
-  #   pressure_old = pressure_old
-  #   Ainv = Ainv_x
-  #   Hhat = Hhat_x
-  #   momentum_component = 'x'
-  #   pressure_relaxation = 1.0 # This is the gradient relaxation - try to keep in 1.0
-  # []
-  # [corrector_y]
-  #   type = FVCorrector
-  #   variable = v_adv
-  #   execute_on = timestep_end
-  #   pressure = pressure_relaxed
-  #   pressure_old = pressure_old
-  #   Ainv = Ainv_y
-  #   Hhat = Hhat_y
-  #   momentum_component = 'y'
-  #   pressure_relaxation = 1.0 # This is the gradient relaxation - try to keep in 1.0
-  # []
+  [corrector_x]
+    type = FVCorrector
+    variable = u_adv
+    execute_on = timestep_end
+    pressure = pressure_relaxed
+    pressure_old = pressure_old
+    Ainv = Ainv_x
+    Hhat = Hhat_x
+    momentum_component = 'x'
+    pressure_relaxation = 1.0 # This is the gradient relaxation - try to keep in 1.0
+  []
+  [corrector_y]
+    type = FVCorrector
+    variable = v_adv
+    execute_on = timestep_end
+    pressure = pressure_relaxed
+    pressure_old = pressure_old
+    Ainv = Ainv_y
+    Hhat = Hhat_y
+    momentum_component = 'y'
+    pressure_relaxation = 1.0 # This is the gradient relaxation - try to keep in 1.0
+  []
 []
 
 [FVBCs]
@@ -183,7 +183,7 @@
 
 [Executioner]
   type = Transient
-  num_steps = 20
+  num_steps = 50
   dt = 0.1
   dtmin = 0.1
   solve_type = 'LINEAR'
@@ -353,6 +353,22 @@
   #   multi_app = sub_corrector
   #   source_variable = pressure_old
   #   variable = pressure_old
+  # []
+  #
+  # [u_adv_old_to_sub_corrector]
+  #   type = MultiAppCopyTransfer
+  #   direction = to_multiapp
+  #   multi_app = sub_corrector
+  #   source_variable = u_adv
+  #   variable = u_adv_old
+  # []
+  #
+  # [v_adv_old_to_sub_corrector]
+  #   type = MultiAppCopyTransfer
+  #   direction = to_multiapp
+  #   multi_app = sub_corrector
+  #   source_variable = v_adv
+  #   variable = v_adv_old
   # []
   #
   # [u_adv_from_sub_corrector]
