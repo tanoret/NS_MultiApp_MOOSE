@@ -28,12 +28,16 @@ protected:
   // void computeOffDiagJacobian() override;
 
   // Pressures
-  const INSFVPressureVariable * const _p_var;
-  const INSFVPressureVariable * const _p_old;
+  //const INSFVPressureVariable * const _p_var;
+  //const INSFVPressureVariable * const _p_old;
+  const Moose::Functor<ADReal> & _p_var;
+  const Moose::Functor<ADReal> & _p_old;
 
   /// Transfer Variables
-  const MooseVariableFVReal * const _Ainv;
-  const MooseVariableFVReal * const _Hhat;
+  //const MooseVariableFVReal * const _Ainv;
+  //const MooseVariableFVReal * const _Hhat;
+  const Moose::Functor<ADReal> & _Ainv;
+  const Moose::Functor<ADReal> & _Hhat;
 
   /// Access to current direction
   const unsigned int _index;

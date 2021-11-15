@@ -9,12 +9,12 @@ velocity_interp_method='average'
   [gen]
     type = GeneratedMeshGenerator
     dim = 2
-    nx = 3
-    ny = 3
+    nx = 200
+    ny = 40
     xmin = 0.0
-    xmax = 3.0
+    xmax = 5.0
     ymin = 0.0
-    ymax = 3.0
+    ymax = 1.0
   []
 []
 
@@ -87,12 +87,12 @@ velocity_interp_method='average'
   #   rho = ${rho}
   # []
 
-  [u_pressure]
-    type = INSFVMomentumPressure
-    variable = u
-    momentum_component = 'x'
-    pressure = pressure_mom
-  []
+  # [u_pressure]
+  #   type = INSFVMomentumPressure
+  #   variable = u
+  #   momentum_component = 'x'
+  #   pressure = pressure_mom
+  # []
 
   [v_adv_diff_residual]
     type = FVNavStokesPredictor_p
@@ -115,12 +115,12 @@ velocity_interp_method='average'
   #   rho = ${rho}
   # []
 
-  [v_pressure]
-    type = INSFVMomentumPressure
-    variable = v
-    momentum_component = 'y'
-    pressure = pressure_mom
-  []
+  # [v_pressure]
+  #   type = INSFVMomentumPressure
+  #   variable = v
+  #   momentum_component = 'y'
+  #   pressure = pressure_mom
+  # []
 
 []
 
@@ -149,32 +149,32 @@ velocity_interp_method='average'
     variable = v
     function = 0
   []
-  # [outlet_p]
-  #   type = INSFVOutletPressureBC
+  [outlet_p]
+    type = INSFVOutletPressureBC
+    boundary = 'right'
+    variable = pressure_mom
+    function = 0
+  []
+  # [outlet_u]
+  #   type = INSFVMomentumAdvectionOutflowBC
+  #   variable = u
+  #   advected_quantity = 'rhou'
+  #   vel = 'velocity'
+  #   advected_interp_method = ${advected_interp_method}
+  #   u = u_adv
+  #   v = v_adv
   #   boundary = 'right'
-  #   variable = pressure_mom
-  #   function = 0
   # []
-  [outlet_u]
-    type = INSFVMomentumAdvectionOutflowBC
-    variable = u
-    advected_quantity = 'rhou'
-    vel = 'velocity'
-    advected_interp_method = ${advected_interp_method}
-    u = u_adv
-    v = v_adv
-    boundary = 'right'
-  []
-  [outlet_v]
-    type = INSFVMomentumAdvectionOutflowBC
-    variable = v
-    advected_quantity = 'rhov'
-    vel = 'velocity'
-    advected_interp_method = ${advected_interp_method}
-    u = u_adv
-    v = v_adv
-    boundary = 'right'
-  []
+  # [outlet_v]
+  #   type = INSFVMomentumAdvectionOutflowBC
+  #   variable = v
+  #   advected_quantity = 'rhov'
+  #   vel = 'velocity'
+  #   advected_interp_method = ${advected_interp_method}
+  #   u = u_adv
+  #   v = v_adv
+  #   boundary = 'right'
+  # []
 []
 
 [Materials]
@@ -189,9 +189,9 @@ velocity_interp_method='average'
 
 [Executioner]
   type = CustomTransient
-  #num_steps = 10
-  #dt = .06
-  #dtmin =
+  num_steps = 1
+  dt = 0.1
+  dtmin = 0.1
 
   solve_type = 'LINEAR'
 
@@ -218,7 +218,7 @@ velocity_interp_method='average'
   l_max_its = 500
 
   momentum_predictor_bool = true
-  verbose_print = true
+  verbose_print = false
 []
 
 [Outputs]

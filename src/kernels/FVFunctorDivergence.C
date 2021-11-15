@@ -55,7 +55,7 @@ FVFunctorDivergence::computeQpResidual()
                                          true,
                                          std::make_pair(elem_sub_id, neighbor_sub_id));
     ADRealVectorValue face_vec(_x(cd_face), _y(cd_face), _z(cd_face));
-    std::cout << _current_elem->vertex_average() << fi->faceCentroid() << face_vec * surface_vector << std::endl;
+    // std::cout << _current_elem->vertex_average() << fi->faceCentroid() << face_vec * surface_vector << std::endl;
     divergence += face_vec * surface_vector;
   };
 

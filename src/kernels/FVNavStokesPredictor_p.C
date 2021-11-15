@@ -588,15 +588,30 @@ FVNavStokesPredictor_p::computeQpResidual()
   const auto diffusion_residual = -1.0 * mu_face * dudn; // mu_face * dudn;
 
   // Pressure Residual
-  // const auto pressure_residual = _p_var->adGradSln(*_face_info)(_index) *
-  // _face_info->normal()(_index);
+  // const Elem * const elem = &_face_info->elem();
+  // const Elem * const neighbor = _face_info->neighborPtr();
+
+  const auto press_elem = _p_var->getElemValue(&_face_info->elem());
+  const auto press_neighbor = onBoundary(*_face_info) ? press_elem : _p_var->getElemValue(_face_info->neighborPtr());
+  ADReal press_interface;
+  Moose::FV::interpolate(Moose::FV::InterpMethod::Average,
+                         press_interface,
+                         press_elem,
+                         press_neighbor,
+                         *_face_info,
+                         true);
+
+  const auto pressure_residual = press_interface * _face_info->normal()(_index);
+  // std::cout << "Pressure interface: "<< press_interface
+  //           << " - Normal: " << _face_info->normal()
+  //           << " Index: " << _index << std::endl;
 
   // Time derivatives
   // ADReal time_residual = 0.;
   // if(_is_transient)
   //   const auto time_residual = _rho(_current_elem) * _var.dot(_current_elem);
 
-  return convection_residual + diffusion_residual; //+ pressure_residual; //+ time_residual;
+  return diffusion_residual + pressure_residual; //convection_residual //+ time_residual;
 }
 
 void

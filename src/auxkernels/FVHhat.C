@@ -72,7 +72,7 @@ FVHhat::computeValue()
   using namespace Moose::FV;
 
   auto _rhs_corr = _rhs->getElemValue(_current_elem) +
-                   _p_mom_predictor->adGradSln(_current_elem)(_index) * _assembly.elemVolume();
+                   _p_mom_predictor->adGradSln(_current_elem)(_index); //* _assembly.elemVolume();
 
   // Constructing Hhat
   auto _Hhat = - 1.0 * _Ainv->getElemValue(_current_elem) * _Hu->getElemValue(_current_elem)
@@ -82,7 +82,7 @@ FVHhat::computeValue()
   // std::cout << "pgrad: " << (_p_mom_predictor->adGradSln(_current_elem)(_index) * _assembly.elemVolume()).value() << std::endl;
   // std::cout << "AinHu: " << (- 1.0 * _Ainv->getElemValue(_current_elem) * _Hu->getElemValue(_current_elem)).value() << std::endl;
   // std::cout << "rhs corr: " << (_Ainv->getElemValue(_current_elem) * _rhs_corr).value() << std::endl;
-  std::cout << "H hat: " << _Hhat.value() << std::endl;
+  // std::cout << "H hat: " << _Hhat.value() << std::endl;
 
   return _Hhat.value();
 }

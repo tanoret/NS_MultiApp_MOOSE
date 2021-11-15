@@ -65,10 +65,10 @@ FVCorrectorMultiApp::computeQpResidual()
 
   auto new_pressure_grad = _p_var->adGradSln(_current_elem)(_index);
 
-  std::cout << "P: " << _p_var->getElemValue(_current_elem) << " - Grad: " << new_pressure_grad << std::endl;
+  // std::cout << "P: " << _p_var->getElemValue(_current_elem) << " - Grad: " << new_pressure_grad << std::endl;
 
   // Computing RHS term
-  auto _p_term = _Ainv->getElemValue(_current_elem) * new_pressure_grad * _assembly.elemVolume();
+  auto _p_term = _Ainv->getElemValue(_current_elem) * new_pressure_grad; //* _assembly.elemVolume();
 
   // Assign new expression because we will be returning its value
   auto _new_vel = _Hhat->getElemValue(_current_elem) - _p_term;

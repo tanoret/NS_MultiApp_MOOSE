@@ -9,12 +9,12 @@ velocity_interp_method='average'
   [gen]
     type = GeneratedMeshGenerator
     dim = 2
-    nx = 3
-    ny = 3
+    nx = 200
+    ny = 40
     xmin = 0.0
-    xmax = 3.0
+    xmax = 5.0
     ymin = 0.0
-    ymax = 3.0
+    ymax = 1.0
   []
 []
 
@@ -76,30 +76,30 @@ velocity_interp_method='average'
   []
 
 [FVBCs]
-  # [inlet-u]
-  #   type = INSFVInletVelocityBC
-  #   boundary = 'left'
-  #   variable = u_adv_corr
-  #   function = ${U}
-  # []
-  # [inlet-v]
-  #   type = INSFVInletVelocityBC
-  #   boundary = 'left'
-  #   variable = v_adv_corr
-  #   function = '0'
-  # []
-  # [walls-u]
-  #   type = INSFVNoSlipWallBC
-  #   boundary = 'top bottom'
-  #   variable = u_adv_corr
-  #   function = 0
-  # []
-  # [walls-v]
-  #   type = INSFVNoSlipWallBC
-  #   boundary = 'top bottom'
-  #   variable = v_adv_corr
-  #   function = 0
-  # []
+  [inlet-u]
+    type = INSFVInletVelocityBC
+    boundary = 'left'
+    variable = u_adv_corr
+    function = ${U}
+  []
+  [inlet-v]
+    type = INSFVInletVelocityBC
+    boundary = 'left'
+    variable = v_adv_corr
+    function = '0'
+  []
+  [walls-u]
+    type = INSFVNoSlipWallBC
+    boundary = 'top bottom'
+    variable = u_adv_corr
+    function = 0
+  []
+  [walls-v]
+    type = INSFVNoSlipWallBC
+    boundary = 'top bottom'
+    variable = v_adv_corr
+    function = 0
+  []
   # [outlet_u]
   #   type = INSFVMomentumAdvectionOutflowBC
   #   variable = u_adv_corr
@@ -141,10 +141,10 @@ velocity_interp_method='average'
 []
 
 [Executioner]
-  type = Transient
-  #num_steps = 50
-  #dt = .1
-  #dtmin = .1
+  type = Steady
+  # num_steps = 50
+  dt = .1
+  dtmin = .1
 
   #petsc_options_iname = '-pc_type'
   #petsc_options_value = 'lu'
