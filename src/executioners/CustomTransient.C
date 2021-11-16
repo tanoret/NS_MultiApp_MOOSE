@@ -321,6 +321,8 @@ CustomTransient::preStep()
 void
 CustomTransient::postStep()
 {
+  std::cout << "Entering post step momentum predictor." << std::endl;
+
   _time_stepper->postStep();
 
   // Little PetSc obbejcts

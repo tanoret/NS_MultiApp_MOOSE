@@ -124,28 +124,28 @@
     pressure_old = pressure_old
     pressure_relaxation = 0.3
   []
-  [corrector_x]
-    type = FVCorrector
-    variable = u_adv
-    execute_on = timestep_end
-    pressure = pressure_relaxed
-    pressure_old = pressure_old
-    Ainv = Ainv_x
-    Hhat = Hhat_x
-    momentum_component = 'x'
-    pressure_relaxation = 1.0 # This is the gradient relaxation - try to keep in 1.0
-  []
-  [corrector_y]
-    type = FVCorrector
-    variable = v_adv
-    execute_on = timestep_end
-    pressure = pressure_relaxed
-    pressure_old = pressure_old
-    Ainv = Ainv_y
-    Hhat = Hhat_y
-    momentum_component = 'y'
-    pressure_relaxation = 1.0 # This is the gradient relaxation - try to keep in 1.0
-  []
+  # [corrector_x]
+  #   type = FVCorrector
+  #   variable = u_adv
+  #   execute_on = timestep_end
+  #   pressure = pressure_relaxed
+  #   pressure_old = pressure_old
+  #   Ainv = Ainv_x
+  #   Hhat = Hhat_x
+  #   momentum_component = 'x'
+  #   pressure_relaxation = 1.0 # This is the gradient relaxation - try to keep in 1.0
+  # []
+  # [corrector_y]
+  #   type = FVCorrector
+  #   variable = v_adv
+  #   execute_on = timestep_end
+  #   pressure = pressure_relaxed
+  #   pressure_old = pressure_old
+  #   Ainv = Ainv_y
+  #   Hhat = Hhat_y
+  #   momentum_component = 'y'
+  #   pressure_relaxation = 1.0 # This is the gradient relaxation - try to keep in 1.0
+  # []
 []
 
 [FVBCs]
@@ -199,13 +199,13 @@
     execute_on = TIMESTEP_BEGIN
     sub_cycling = false
   []
-  # [sub_corrector]
-  #   # type = TransientMultiApp
-  #   type = FullSolveMultiApp
-  #   input_files = FV_Channel_Momentum_Corrector.i
-  #   execute_on = TIMESTEP_END
-  #   sub_cycling = false
-  # []
+  [sub_corrector]
+    # type = TransientMultiApp
+    type = FullSolveMultiApp
+    input_files = FV_Channel_Momentum_Corrector.i
+    execute_on = TIMESTEP_END
+    sub_cycling = false
+  []
 []
 
 [Transfers]
@@ -307,85 +307,85 @@
     variable = pressure_mom
   []
 
-  # [Ainv_x_to_sub_corrector]
-  #   type = MultiAppCopyTransfer
-  #   direction = to_multiapp
-  #   multi_app = sub_corrector
-  #   source_variable = Ainv_x
-  #   variable = Ainv_x
-  # []
-  #
-  # [Ainv_y_to_sub_corrector]
-  #   type = MultiAppCopyTransfer
-  #   direction = to_multiapp
-  #   multi_app = sub_corrector
-  #   source_variable = Ainv_y
-  #   variable = Ainv_y
-  # []
-  #
-  # [Hhat_x_to_sub_corrector]
-  #   type = MultiAppCopyTransfer
-  #   direction = to_multiapp
-  #   multi_app = sub_corrector
-  #   source_variable = Hhat_x
-  #   variable = Hhat_x
-  # []
-  #
-  # [Hhat_y_to_sub_corrector]
-  #   type = MultiAppCopyTransfer
-  #   direction = to_multiapp
-  #   multi_app = sub_corrector
-  #   source_variable = Hhat_y
-  #   variable = Hhat_y
-  # []
-  #
-  # [p_to_sub_corrector]
-  #   type = MultiAppCopyTransfer
-  #   direction = to_multiapp
-  #   multi_app = sub_corrector
-  #   source_variable = pressure_relaxed
-  #   variable = pressure_corr
-  # []
-  #
-  # [p_old_to_sub_corrector]
-  #   type = MultiAppCopyTransfer
-  #   direction = to_multiapp
-  #   multi_app = sub_corrector
-  #   source_variable = pressure_old
-  #   variable = pressure_old
-  # []
-  #
-  # [u_adv_old_to_sub_corrector]
-  #   type = MultiAppCopyTransfer
-  #   direction = to_multiapp
-  #   multi_app = sub_corrector
-  #   source_variable = u_adv
-  #   variable = u_adv_old
-  # []
-  #
-  # [v_adv_old_to_sub_corrector]
-  #   type = MultiAppCopyTransfer
-  #   direction = to_multiapp
-  #   multi_app = sub_corrector
-  #   source_variable = v_adv
-  #   variable = v_adv_old
-  # []
-  #
-  # [u_adv_from_sub_corrector]
-  #   type = MultiAppCopyTransfer
-  #   direction = from_multiapp
-  #   multi_app = sub_corrector
-  #   source_variable = u_adv_corr
-  #   variable = u_adv
-  # []
-  #
-  # [v_adv_from_sub_corrector]
-  #   type = MultiAppCopyTransfer
-  #   direction = from_multiapp
-  #   multi_app = sub_corrector
-  #   source_variable = v_adv_corr
-  #   variable = v_adv
-  # []
+  [Ainv_x_to_sub_corrector]
+    type = MultiAppCopyTransfer
+    direction = to_multiapp
+    multi_app = sub_corrector
+    source_variable = Ainv_x
+    variable = Ainv_x
+  []
+
+  [Ainv_y_to_sub_corrector]
+    type = MultiAppCopyTransfer
+    direction = to_multiapp
+    multi_app = sub_corrector
+    source_variable = Ainv_y
+    variable = Ainv_y
+  []
+
+  [Hhat_x_to_sub_corrector]
+    type = MultiAppCopyTransfer
+    direction = to_multiapp
+    multi_app = sub_corrector
+    source_variable = Hhat_x
+    variable = Hhat_x
+  []
+
+  [Hhat_y_to_sub_corrector]
+    type = MultiAppCopyTransfer
+    direction = to_multiapp
+    multi_app = sub_corrector
+    source_variable = Hhat_y
+    variable = Hhat_y
+  []
+
+  [p_to_sub_corrector]
+    type = MultiAppCopyTransfer
+    direction = to_multiapp
+    multi_app = sub_corrector
+    source_variable = pressure_relaxed
+    variable = pressure_corr
+  []
+
+  [p_old_to_sub_corrector]
+    type = MultiAppCopyTransfer
+    direction = to_multiapp
+    multi_app = sub_corrector
+    source_variable = pressure_old
+    variable = pressure_old
+  []
+
+  [u_adv_old_to_sub_corrector]
+    type = MultiAppCopyTransfer
+    direction = to_multiapp
+    multi_app = sub_corrector
+    source_variable = u_adv
+    variable = u_adv_old
+  []
+
+  [v_adv_old_to_sub_corrector]
+    type = MultiAppCopyTransfer
+    direction = to_multiapp
+    multi_app = sub_corrector
+    source_variable = v_adv
+    variable = v_adv_old
+  []
+
+  [u_adv_from_sub_corrector]
+    type = MultiAppCopyTransfer
+    direction = from_multiapp
+    multi_app = sub_corrector
+    source_variable = u_adv_corr
+    variable = u_adv
+  []
+
+  [v_adv_from_sub_corrector]
+    type = MultiAppCopyTransfer
+    direction = from_multiapp
+    multi_app = sub_corrector
+    source_variable = v_adv_corr
+    variable = v_adv
+  []
 []
 
 [Outputs]
