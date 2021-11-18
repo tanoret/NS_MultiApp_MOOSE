@@ -46,7 +46,8 @@ pressureRelaxation::pressureRelaxation(const InputParameters & parameters)
 Real
 pressureRelaxation::computeValue()
 {
-  auto new_pressure = _pressure_relaxation * _p_var->getElemValue(_current_elem)
-                      + (1 - _pressure_relaxation) * _p_old->getElemValue(_current_elem);
+  auto new_pressure = _p_old->getElemValue(_current_elem) +
+                      _pressure_relaxation * _p_var->getElemValue(_current_elem);
+
   return new_pressure.value();
 }

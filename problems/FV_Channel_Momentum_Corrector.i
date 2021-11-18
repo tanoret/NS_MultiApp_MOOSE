@@ -1,6 +1,6 @@
-mu=1.1
-rho=1.0
-U=0.1
+mu=1.0
+rho=1.1
+U=1.0
 advected_interp_method='average'
 #velocity_interp_method='rc'
 velocity_interp_method='average'
@@ -9,8 +9,8 @@ velocity_interp_method='average'
   [gen]
     type = GeneratedMeshGenerator
     dim = 2
-    nx = 500
-    ny = 100
+    nx = 200
+    ny = 50
     xmin = 0.0
     xmax = 5.0
     ymin = 0.0
@@ -150,18 +150,15 @@ velocity_interp_method='average'
 
 [Executioner]
   type = Steady
-  # num_steps = 50
-  dt = .1
-  dtmin = .1
+  num_steps = 5
+  # dt = .1
+  # dtmin = .1
 
   #petsc_options_iname = '-pc_type'
   #petsc_options_value = 'lu'
 
   #line_search = 'none'
-  nl_rel_tol = 1e-7
-  nl_abs_tol = 1e-8
-  nl_max_its = 6
-  l_tol = 1e-6
+  nl_rel_tol = 1e-2
   l_max_its = 500
 []
 

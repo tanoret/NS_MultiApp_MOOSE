@@ -144,6 +144,8 @@ FVNavStokesPressurePredictor_p::computeQpResidual()
                            *_face_info,
                            true);
 
+  // std::cout << "Interp Ainv: " << interp_Ainv_face(0).value() << std::endl;
+
   ADRealVectorValue Ainv_gradp(interp_Ainv_face(0) * _var.adGradSln(*_face_info)(0));
   if (_Ainv_y)
     Ainv_gradp(1) = interp_Ainv_face(1) * _var.adGradSln(*_face_info)(1);
@@ -152,38 +154,66 @@ FVNavStokesPressurePredictor_p::computeQpResidual()
 
   auto diff_residual = Ainv_gradp * _face_info->normal();
 
-  // Divergence residual
-  ADRealVectorValue elem_Hu(_Hu_x->getElemValue(elem) * _face_info->elemVolume());
-  if (_Hu_y)
-    elem_Hu(1) = _Hu_y->getElemValue(elem) * _face_info->elemVolume();
-  if (_Hu_z)
-    elem_Hu(2) = _Hu_z->getElemValue(elem) * _face_info->elemVolume();
+  // // Divergence residual
+  // ADRealVectorValue elem_Hu(_Hu_x->getElemValue(elem)); // * _face_info->elemVolume());
+  // if (_Hu_y)
+  //   elem_Hu(1) = _Hu_y->getElemValue(elem); // * _face_info->elemVolume();
+  // if (_Hu_z)
+  //   elem_Hu(2) = _Hu_z->getElemValue(elem); // * _face_info->elemVolume();
+  //
+  // ADRealVectorValue neighbor_Hu(_Hu_x->getNeighborValue(neighbor, *_face_info, elem_Hu(0))); //* _face_info->neighborVolume());
+  // if (_Hu_y)
+  //   neighbor_Hu(1) = _Hu_y->getNeighborValue(neighbor, *_face_info, elem_Hu(1)); //* _face_info->neighborVolume();
+  // if (_Hu_z)
+  //   neighbor_Hu(2) = _Hu_z->getNeighborValue(neighbor, *_face_info, elem_Hu(2)); //* _face_info->neighborVolume();
+  //
+  // ADRealVectorValue interp_Hu_face;
+  // if (onBoundary(*_face_info))
+  // {
+  //   interp_Hu_face(0) = _Hu_x->getBoundaryFaceValue(*_face_info); //* _face_info->neighborVolume();
+  //   if (_Hu_y)
+  //     interp_Hu_face(1) = _Hu_y->getBoundaryFaceValue(*_face_info); //* _face_info->neighborVolume();
+  //   if (_Hu_z)
+  //     interp_Hu_face(2) = _Hu_z->getBoundaryFaceValue(*_face_info); //* _face_info->neighborVolume();
+  // }
+  // else
+  //   Moose::FV::interpolate(Moose::FV::InterpMethod::Average,
+  //                          interp_Hu_face,
+  //                          elem_Hu,
+  //                          neighbor_Hu,
+  //                          *_face_info,
+  //                          true);
+  //
+  // auto div_residual = interp_Hu_face * _face_info->normal();
 
-  ADRealVectorValue neighbor_Hu(_Hu_x->getNeighborValue(neighbor, *_face_info, elem_Hu(0)) * _face_info->neighborVolume());
-  if (_Hu_y)
-    neighbor_Hu(1) = _Hu_y->getNeighborValue(neighbor, *_face_info, elem_Hu(1)) * _face_info->neighborVolume();
-  if (_Hu_z)
-    neighbor_Hu(2) = _Hu_z->getNeighborValue(neighbor, *_face_info, elem_Hu(2)) * _face_info->neighborVolume();
-
-  ADRealVectorValue interp_Hu_face;
-  if (onBoundary(*_face_info))
-  {
-    interp_Hu_face(0) = _Hu_x->getBoundaryFaceValue(*_face_info) * _face_info->neighborVolume();
-    if (_Hu_y)
-      interp_Hu_face(1) = _Hu_y->getBoundaryFaceValue(*_face_info) * _face_info->neighborVolume();
-    if (_Hu_z)
-      interp_Hu_face(2) = _Hu_z->getBoundaryFaceValue(*_face_info) * _face_info->neighborVolume();
-  }
-  else
-    Moose::FV::interpolate(Moose::FV::InterpMethod::Average,
-                           interp_Hu_face,
-                           elem_Hu,
-                           neighbor_Hu,
-                           *_face_info,
-                           true);
-
-  auto div_residual = interp_Hu_face * _face_info->normal();
-
-  return diff_residual - div_residual;
+  return diff_residual; //div_residual.value();
 
 }
+
+
+// void
+// FVNavStokesPressurePredictor_p::computeResidual(const FaceInfo & fi)
+// {
+//   if (skipForBoundary(fi))
+//     return;
+//
+//   _face_info = &fi;
+//   _normal = fi.normal();
+//   auto r = MetaPhysicL::raw_value(fi.faceArea() * fi.faceCoord() * computeQpResidual());
+//
+//   auto ft = fi.faceType(_var.name());
+//   if (ft == FaceInfo::VarFaceNeighbors::ELEM || ft == FaceInfo::VarFaceNeighbors::BOTH)
+//   {
+//     // residual contribution of this kernel to the elem element
+//     prepareVectorTag(_assembly, _var.number());
+//     _local_re(0) = r;
+//     accumulateTaggedLocalResidual();
+//   }
+//   if (ft == FaceInfo::VarFaceNeighbors::NEIGHBOR || ft == FaceInfo::VarFaceNeighbors::BOTH)
+//   {
+//     // residual contribution of this kernel to the neighbor element
+//     prepareVectorTagNeighbor(_assembly, _var.number());
+//     _local_re(0) = -r;
+//     accumulateTaggedLocalResidual();
+//   }
+// }

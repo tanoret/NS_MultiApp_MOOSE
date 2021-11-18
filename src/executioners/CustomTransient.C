@@ -641,8 +641,8 @@ CustomTransient::postStep()
     // }
     VecDuplicate(vec_dummy, &_Hu);
     MatMult(MC, ploc_solution->vec(), _Hu);
-    //VecPointwiseMult(_Hu, _Hu, _Ainv);
-    //VecScale(_Hu, -1.0);
+    VecPointwiseMult(_Hu, _Hu, _Ainv);
+    // VecScale(_Hu, -1.0);
     if (_verbose_print)
     {
       std::cout << "_Hu: " << std::endl;
@@ -714,6 +714,7 @@ CustomTransient::postStep()
     PetscVector<Number> * prhs = dynamic_cast<PetscVector<Number> *>(zero_rhs.get());
     VecCopy(prhs->vec(), _rhs);
     VecScale(_rhs, -1.0);
+    VecPointwiseMult(_rhs, _rhs, _Ainv);
     if(_verbose_print)
     {
       std::cout << "RHS: " << std::endl;

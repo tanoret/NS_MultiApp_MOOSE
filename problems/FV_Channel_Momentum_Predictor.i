@@ -1,6 +1,6 @@
-mu=1.1
-rho=1.0
-U=0.1
+mu=1.0
+rho=1.1
+U=1.0
 advected_interp_method='average'
 #velocity_interp_method='rc'
 velocity_interp_method='average'
@@ -9,8 +9,8 @@ velocity_interp_method='average'
   [gen]
     type = GeneratedMeshGenerator
     dim = 2
-    nx = 500
-    ny = 100
+    nx = 200
+    ny = 50
     xmin = 0.0
     xmax = 5.0
     ymin = 0.0
@@ -25,7 +25,7 @@ velocity_interp_method='average'
 [Variables]
   [u]
     type = INSFVVelocityVariable
-    initial_condition = ${U}
+    initial_condition = 0
   []
   [v]
     type = INSFVVelocityVariable
@@ -36,7 +36,7 @@ velocity_interp_method='average'
 [AuxVariables]
   [u_adv]
     type = INSFVVelocityVariable
-    initial_condition = ${U}
+    initial_condition = 0
   []
   [v_adv]
     type = INSFVVelocityVariable
@@ -81,17 +81,12 @@ velocity_interp_method='average'
     momentum_component = 'x'
   []
 
-  # [u_time_derivative]
-  #   type = INSFVMomentumTimeDerivative
+  # [u_time_derivative_and_relax]
+  #   type = FVNavierStokesTimeRelax
   #   variable = u
-  #   rho = ${rho}
-  # []
-
-  # [u_pressure]
-  #   type = INSFVMomentumPressure
-  #   variable = u
-  #   momentum_component = 'x'
-  #   pressure = pressure_mom
+  #   add_time_derivative = false
+  #   velocity_relaxation = 1.0
+  #   Ainv = Ainv_x
   # []
 
   [v_adv_diff_residual]
@@ -109,17 +104,12 @@ velocity_interp_method='average'
     momentum_component = 'y'
   []
 
-  # [v_time_derivative]
-  #   type = INSFVMomentumTimeDerivative
+  # [v_time_derivative_and_relax]
+  #   type = FVNavierStokesTimeRelax
   #   variable = v
-  #   rho = ${rho}
-  # []
-
-  # [v_pressure]
-  #   type = INSFVMomentumPressure
-  #   variable = v
-  #   momentum_component = 'y'
-  #   pressure = pressure_mom
+  #   add_time_derivative = false
+  #   velocity_relaxation = 1.0
+  #   Ainv = Ainv_y
   # []
 
 []

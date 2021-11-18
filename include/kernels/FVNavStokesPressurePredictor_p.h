@@ -73,4 +73,5 @@ protected:
   const Elem * const & _current_elem;
   unsigned int counter;
 
+  // void computeResidual(const FaceInfo & fi) override;
 };

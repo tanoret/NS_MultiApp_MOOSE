@@ -111,7 +111,7 @@ protected:
                             std::vector<std::unordered_map<const Elem *, VectorValue<ADReal>>>>
       _rc_a_coeffs;
 
-  // Pointer to the current element
+  /// Pointer to the current element
   const Elem * const & _current_elem;
 
   /// index x|y|z

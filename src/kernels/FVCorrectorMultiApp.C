@@ -9,6 +9,35 @@
 
 #include "FVCorrectorMultiApp.h"
 #include "MooseMesh.h"
+#include "MooseVariableDataFV.h"
+
+#include "MooseVariableFV.h"
+#include "TimeIntegrator.h"
+#include "NonlinearSystemBase.h"
+#include "DisplacedSystem.h"
+#include "SystemBase.h"
+#include "SubProblem.h"
+#include "Assembly.h"
+#include "MathFVUtils.h"
+#include "FVUtils.h"
+#include "FVFluxBC.h"
+#include "FVDirichletBCBase.h"
+#include "MooseTypes.h"
+#include "MooseVariableField.h"
+#include "SubProblem.h"
+#include "MooseMesh.h"
+#include "MooseVariableDataFV.h"
+
+#include "libmesh/numeric_vector.h"
+#include "libmesh/dof_map.h"
+#include "libmesh/elem.h"
+#include "libmesh/quadrature.h"
+#include "libmesh/dense_vector.h"
+#include "libmesh/dense_vector.h"
+
+#include <climits>
+#include <typeinfo>
+
 
 registerMooseObject("AirfoilAppApp", FVCorrectorMultiApp);
 
