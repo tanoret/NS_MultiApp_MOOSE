@@ -117,30 +117,30 @@
     execute_on = timestep_end
     pressure = pressure_p
     pressure_old = pressure_old
-    pressure_relaxation = 0.3
+    pressure_relaxation = 0.7
   []
-  # [corrector_x]
-  #   type = FVCorrector
-  #   variable = u_adv
-  #   execute_on = timestep_end
-  #   pressure = pressure_relaxed
-  #   pressure_old = pressure_old
-  #   Ainv = Ainv_x
-  #   Hhat = Hhat_x
-  #   momentum_component = 'x'
-  #   pressure_relaxation = 1.0
-  # []
-  # [corrector_y]
-  #   type = FVCorrector
-  #   variable = v_adv
-  #   execute_on = timestep_end
-  #   pressure = pressure_relaxed
-  #   pressure_old = pressure_old
-  #   Ainv = Ainv_y
-  #   Hhat = Hhat_y
-  #   momentum_component = 'y'
-  #   pressure_relaxation = 1.0
-  # []
+  [corrector_x]
+    type = FVCorrector
+    variable = u_adv
+    execute_on = timestep_end
+    pressure = pressure_relaxed
+    pressure_old = pressure_old
+    Ainv = Ainv_x
+    Hhat = Hhat_x
+    momentum_component = 'x'
+    pressure_relaxation = 1.0
+  []
+  [corrector_y]
+    type = FVCorrector
+    variable = v_adv
+    execute_on = timestep_end
+    pressure = pressure_relaxed
+    pressure_old = pressure_old
+    Ainv = Ainv_y
+    Hhat = Hhat_y
+    momentum_component = 'y'
+    pressure_relaxation = 1.0
+  []
 []
 
 [FVBCs]
@@ -178,7 +178,7 @@
 
 [Executioner]
   type = Transient
-  num_steps = 20
+  num_steps = 25
   dt = 0.1
   dtmin = 0.1
   solve_type = 'LINEAR'
