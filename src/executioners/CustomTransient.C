@@ -487,7 +487,7 @@ CustomTransient::postStep()
     std::unique_ptr<NumericVector<Number>> loc_zero_rhs = isys.rhs->zero_clone();
 
     feProblem().computeResidualSys(isys, *loc_zero_sol.get(), *loc_zero_rhs.get());
-    PetscVector<Number> * loc_prhs = dynamic_cast<PetscVector<Number> *>(loc_zero_sol.get());
+    PetscVector<Number> * loc_prhs = dynamic_cast<PetscVector<Number> *>(loc_zero_rhs.get());
     VecCopy(loc_prhs->vec(), _rhs_loc);
 
     VecScale(_rhs_loc, -1.0);
@@ -554,11 +554,11 @@ CustomTransient::postStep()
     VecDuplicate(ploc_residual->vec(), &vec_dummy);
     VecSet(vec_dummy, 1.0);
     VecPointwiseDivide(_Ainv, vec_dummy, _Ainv);
-    if(_verbose_print)
-    {
-      std::cout << "Ainv: " << std::endl;
-      VecView(_Ainv, PETSC_VIEWER_STDOUT_WORLD);
-    }
+    // if(_verbose_print)
+    // {
+    //   std::cout << "Ainv: " << std::endl;
+    //   VecView(_Ainv, PETSC_VIEWER_STDOUT_WORLD);
+    // }
 
     // if(_verbose_print)
     // {
@@ -627,11 +627,11 @@ CustomTransient::postStep()
     MatDuplicate(pmat->mat(), MAT_COPY_VALUES, &MC);
     VecZeroEntries(vec_dummy);
     MatDiagonalSet(MC, vec_dummy, INSERT_VALUES);
-    if(_verbose_print)
-    {
-      std::cout << "H matrix: " << std::endl;
-      MatView(MC, PETSC_VIEWER_STDOUT_WORLD);
-    }
+    // if(_verbose_print)
+    // {
+    //   std::cout << "H matrix: " << std::endl;
+    //   MatView(MC, PETSC_VIEWER_STDOUT_WORLD);
+    // }
     NumericVector<Number> * loc_solution = isys.solution.get();
     PetscVector<Number> * ploc_solution = dynamic_cast<PetscVector<Number> *>(loc_solution);
     // if(_verbose_print)
@@ -643,11 +643,11 @@ CustomTransient::postStep()
     MatMult(MC, ploc_solution->vec(), _Hu);
     VecPointwiseMult(_Hu, _Hu, _Ainv);
     // VecScale(_Hu, -1.0);
-    if (_verbose_print)
-    {
-      std::cout << "_Hu: " << std::endl;
-      VecView(_Hu, PETSC_VIEWER_STDOUT_WORLD);
-    }
+    // if (_verbose_print)
+    // {
+    //   std::cout << "_Hu: " << std::endl;
+    //   VecView(_Hu, PETSC_VIEWER_STDOUT_WORLD);
+    // }
 
     // loc_dim = 0;
     // if(mesh_dimension > loc_dim)
@@ -714,12 +714,12 @@ CustomTransient::postStep()
     PetscVector<Number> * prhs = dynamic_cast<PetscVector<Number> *>(zero_rhs.get());
     VecCopy(prhs->vec(), _rhs);
     VecScale(_rhs, -1.0);
-    VecPointwiseMult(_rhs, _rhs, _Ainv);
     if(_verbose_print)
     {
       std::cout << "RHS: " << std::endl;
       VecView(_rhs, PETSC_VIEWER_STDOUT_WORLD);
     }
+    VecPointwiseMult(_rhs, _rhs, _Ainv);
 
     // loc_dim = 0;
     // if(mesh_dimension > loc_dim)
@@ -803,19 +803,19 @@ CustomTransient::postStep()
         dof_id_type Hu_x_dof = elem->dof_number(aux_sys.number(), Hu_x_num, 0);
         dof_id_type rhs_x_dof = elem->dof_number(aux_sys.number(), rhs_x_num, 0);
 
-        if (_verbose_print)
-          std::cout << "xdofs: " << Ainv_x_dof << " " << Hu_x_dof << " " << rhs_x_dof << " " << u_dof << std::endl;
+        // if (_verbose_print)
+        //   std::cout << "xdofs: " << Ainv_x_dof << " " << Hu_x_dof << " " << rhs_x_dof << " " << u_dof << std::endl;
 
         PetscInt petsc_dof = (PetscInt) u_dof;
 
         VecGetValues(_Ainv, 1, &petsc_dof, &val);
-        if (_verbose_print) std::cout << "Val Ainv_x: " << val << std::endl;
+        // if (_verbose_print) std::cout << "Val Ainv_x: " << val << std::endl;
         aux_sys.solution().set(Ainv_x_dof, val);
         VecGetValues(_Hu, 1, &petsc_dof, &val);
-        if (_verbose_print) std::cout << "Val Hu_x: " << val << std::endl;
+        // if (_verbose_print) std::cout << "Val Hu_x: " << val << std::endl;
         aux_sys.solution().set(Hu_x_dof, val);
         VecGetValues(_rhs, 1, &petsc_dof, &val);
-        if (_verbose_print) std::cout << "Val RHS_x: " << val << std::endl;
+        // if (_verbose_print) std::cout << "Val RHS_x: " << val << std::endl;
         aux_sys.solution().set(rhs_x_dof, val);
       }
     }
@@ -839,19 +839,19 @@ CustomTransient::postStep()
         dof_id_type Hu_y_dof = elem->dof_number(aux_sys.number(), Hu_y_num, 0);
         dof_id_type rhs_y_dof = elem->dof_number(aux_sys.number(), rhs_y_num, 0);
 
-        if (_verbose_print)
-          std::cout << "ydofs: " << Ainv_y_dof << " " << Hu_y_dof << " " << rhs_y_dof << " " << v_dof << std::endl;
+        // if (_verbose_print)
+        //   std::cout << "ydofs: " << Ainv_y_dof << " " << Hu_y_dof << " " << rhs_y_dof << " " << v_dof << std::endl;
 
         PetscInt petsc_dof = (PetscInt) v_dof;
 
         VecGetValues(_Ainv, 1, &petsc_dof, &val);
-        if (_verbose_print) std::cout << "Val Ainv_y: " << val << std::endl;
+        // if (_verbose_print) std::cout << "Val Ainv_y: " << val << std::endl;
         aux_sys.solution().set(Ainv_y_dof, val);
         VecGetValues(_Hu, 1, &petsc_dof, &val);
-        if (_verbose_print) std::cout << "Val Hu_y: " << val << std::endl;
+        // if (_verbose_print) std::cout << "Val Hu_y: " << val << std::endl;
         aux_sys.solution().set(Hu_y_dof, val);
         VecGetValues(_rhs, 1, &petsc_dof, &val);
-        if (_verbose_print) std::cout << "Val RHS_y: " << val << std::endl;
+        // if (_verbose_print) std::cout << "Val RHS_y: " << val << std::endl;
         aux_sys.solution().set(rhs_y_dof, val);
       }
     }
@@ -875,19 +875,19 @@ CustomTransient::postStep()
         dof_id_type Hu_z_dof = elem->dof_number(aux_sys.number(), Hu_z_num, 0);
         dof_id_type rhs_z_dof = elem->dof_number(aux_sys.number(), rhs_z_num, 0);
 
-        if (_verbose_print)
-          std::cout << "zdofs: " << Ainv_z_dof << " " << Hu_z_dof << " " << rhs_z_dof << " " << w_dof << std::endl;
+        // if (_verbose_print)
+        //   std::cout << "zdofs: " << Ainv_z_dof << " " << Hu_z_dof << " " << rhs_z_dof << " " << w_dof << std::endl;
 
         PetscInt petsc_dof = (PetscInt) w_dof;
 
         VecGetValues(_Ainv, 1, &petsc_dof, &val);
-        if (_verbose_print) std::cout << "Val Ainv_z: " << val << std::endl;
+        // if (_verbose_print) std::cout << "Val Ainv_z: " << val << std::endl;
         aux_sys.solution().set(Ainv_z_dof, val);
         VecGetValues(_Hu, 1, &petsc_dof, &val);
-        if (_verbose_print) std::cout << "Val Hu_z: " << val << std::endl;
+        // if (_verbose_print) std::cout << "Val Hu_z: " << val << std::endl;
         aux_sys.solution().set(Hu_z_dof, val);
         VecGetValues(_rhs, 1, &petsc_dof, &val);
-        if (_verbose_print) std::cout << "Val RHS_z: " << val << std::endl;
+        // if (_verbose_print) std::cout << "Val RHS_z: " << val << std::endl;
         aux_sys.solution().set(rhs_z_dof, val);
       }
     }

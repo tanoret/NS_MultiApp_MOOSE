@@ -154,7 +154,7 @@ FVNavStokesPressurePredictor_p::computeQpResidual()
 
   auto diff_residual = Ainv_gradp * _face_info->normal();
 
-  // // Divergence residual
+  // Divergence residual
   // ADRealVectorValue elem_Hu(_Hu_x->getElemValue(elem)); // * _face_info->elemVolume());
   // if (_Hu_y)
   //   elem_Hu(1) = _Hu_y->getElemValue(elem); // * _face_info->elemVolume();
@@ -186,7 +186,7 @@ FVNavStokesPressurePredictor_p::computeQpResidual()
   //
   // auto div_residual = interp_Hu_face * _face_info->normal();
 
-  return diff_residual; //div_residual.value();
+  return diff_residual; //+ div_residual.value();
 
 }
 

@@ -1,4 +1,4 @@
-mu=1.1
+mu=0.001
 rho=1.0
 U=1.0
 advected_interp_method='average'
@@ -6,16 +6,8 @@ advected_interp_method='average'
 velocity_interp_method='average'
 
 [Mesh]
-  [gen]
-    type = GeneratedMeshGenerator
-    dim = 2
-    nx = 200
-    ny = 40
-    xmin = 0.0
-    xmax = 5.0
-    ymin = 0.0
-    ymax = 1.0
-  []
+  file = BFS_2D_flat.e
+  # uniform_refine = 1
 []
 
 [Problem]
@@ -112,109 +104,59 @@ velocity_interp_method='average'
     Ainv = Ainv_y
   []
 
-  # [u_advection]
-  #   type = INSFVMomentumAdvection
-  #   variable = u
-  #   advected_quantity = 'rhou'
-  #   vel = 'velocity'
-  #   advected_interp_method = ${advected_interp_method}
-  #   velocity_interp_method = ${velocity_interp_method}
-  #   pressure = pressure_mom
-  #   u = u
-  #   v = v
-  #   mu = ${mu}
-  #   rho = ${rho}
-  # []
-  # [u_viscosity]
-  #   type = FVDiffusion
-  #   variable = u
-  #   coeff = ${mu}
-  # []
-  # [u_pressure]
-  #   type = INSFVMomentumPressure
-  #   variable = u
-  #   momentum_component = 'x'
-  #   pressure = pressure_mom
-  # []
-  #
-  # [v_advection]
-  #   type = INSFVMomentumAdvection
-  #   variable = v
-  #   advected_quantity = 'rhov'
-  #   vel = 'velocity'
-  #   advected_interp_method = ${advected_interp_method}
-  #   velocity_interp_method = ${velocity_interp_method}
-  #   pressure = pressure_mom
-  #   u = u
-  #   v = v
-  #   mu = ${mu}
-  #   rho = ${rho}
-  # []
-  # [v_viscosity]
-  #   type = FVDiffusion
-  #   variable = v
-  #   coeff = ${mu}
-  # []
-  # [v_pressure]
-  #   type = INSFVMomentumPressure
-  #   variable = v
-  #   momentum_component = 'y'
-  #   pressure = pressure_mom
-  # []
-
 []
 
 [FVBCs]
   [inlet-u]
     type = INSFVInletVelocityBC
-    boundary = 'left'
+    boundary = 'Inlet'
     variable = u
     function = ${U}
   []
   [inlet-v]
     type = INSFVInletVelocityBC
-    boundary = 'left'
+    boundary = 'Inlet'
     variable = v
     function = '0'
   []
   [walls-u]
     type = INSFVNoSlipWallBC
-    boundary = 'top bottom'
+    boundary = 'Wall'
     variable = u
     function = 0
   []
   [walls-v]
     type = INSFVNoSlipWallBC
-    boundary = 'top bottom'
+    boundary = 'Wall'
     variable = v
     function = 0
   []
-  [outlet_p]
-    type = INSFVOutletPressureBC
-    boundary = 'right'
-    variable = pressure_mom
-    function = 0
+  # [outlet_p]
+  #   type = INSFVOutletPressureBC
+  #   boundary = 'Outlet'
+  #   variable = pressure_mom
+  #   function = 0
+  # []
+  [outlet_u]
+    type = INSFVMomentumAdvectionOutflowBC
+    variable = u
+    advected_quantity = 'rhou'
+    vel = 'velocity'
+    advected_interp_method = ${advected_interp_method}
+    u = u_adv
+    v = v_adv
+    boundary = 'Outlet'
   []
-  # [outlet_u]
-  #   type = INSFVMomentumAdvectionOutflowBC
-  #   variable = u
-  #   advected_quantity = 'rhou'
-  #   vel = 'velocity'
-  #   advected_interp_method = ${advected_interp_method}
-  #   u = u_adv
-  #   v = v_adv
-  #   boundary = 'right'
-  # []
-  # [outlet_v]
-  #   type = INSFVMomentumAdvectionOutflowBC
-  #   variable = v
-  #   advected_quantity = 'rhov'
-  #   vel = 'velocity'
-  #   advected_interp_method = ${advected_interp_method}
-  #   u = u_adv
-  #   v = v_adv
-  #   boundary = 'right'
-  # []
+  [outlet_v]
+    type = INSFVMomentumAdvectionOutflowBC
+    variable = v
+    advected_quantity = 'rhov'
+    vel = 'velocity'
+    advected_interp_method = ${advected_interp_method}
+    u = u_adv
+    v = v_adv
+    boundary = 'Outlet'
+  []
 []
 
 [Materials]
@@ -241,28 +183,28 @@ velocity_interp_method='average'
   #petsc_options_iname = '-ksp_gmres_restart -pc_type -sub_pc_type -sub_pc_factor_levels'
   #petsc_options_value = '300                bjacobi  ilu          4'
 
-  # petsc_options_iname = '-ksp_type -pc_type -sub_pc_type -snes_max_it -sub_pc_factor_shift_type -pc_asm_overlap -snes_atol -snes_rtol '
-  # petsc_options_value = 'gmres asm lu 100 NONZERO 2 1E-14 1E-12'
+  petsc_options_iname = '-ksp_type -pc_type -sub_pc_type -snes_max_it -sub_pc_factor_shift_type -pc_asm_overlap -snes_atol -snes_rtol '
+  petsc_options_value = 'gmres asm lu 100 NONZERO 2 1E-14 1E-12'
 
-  petsc_options_iname = '-ksp_type -pc_type -pc_sub_type -sub_pc_factor_levels'
-  petsc_options_value = 'gmres asm ilu 4'
+  # petsc_options_iname = '-ksp_type -pc_type -pc_sub_type -sub_pc_factor_levels'
+  # petsc_options_value = 'gmres asm ilu 4'
 
   #petsc_options_iname = '-pc_type -pc_asm_overlap -sub_pc_type -sub_pc_factor_levels'   #Option 2
   #petsc_options_value = 'asm      2               ilu          4'
   #line_search = 'none'
 
-  nl_rel_tol = 1e-8
-  nl_abs_tol = 1e-9
+  nl_rel_tol = 1e-2
+  nl_abs_tol = 1e-6
   nl_max_its = 40
-  l_tol = 1e-8
-  l_max_its = 500
+  l_tol = 1e-2
+  l_max_its = 100
 
   momentum_predictor_bool = true
   verbose_print = false
 []
 
 [Outputs]
-  file_base = channel_sub
+  file_base = BFS_2D_sub
   exodus = true
   # perf_graph = true # prints a performance report to the terminal
 []

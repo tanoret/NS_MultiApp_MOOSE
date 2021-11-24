@@ -1,4 +1,4 @@
-mu=1.0
+mu=0.02
 rho=1.1
 U=1.0
 advected_interp_method='average'
@@ -10,7 +10,7 @@ velocity_interp_method='average'
     type = GeneratedMeshGenerator
     dim = 2
     nx = 200
-    ny = 50
+    ny = 40
     xmin = 0.0
     xmax = 5.0
     ymin = 0.0

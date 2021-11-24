@@ -1,14 +1,6 @@
 [Mesh]
-  [gen]
-    type = GeneratedMeshGenerator
-    dim = 2
-    nx = 200
-    ny = 40
-    xmin = 0.0
-    xmax = 5.0
-    ymin = 0.0
-    ymax = 1.0
-  []
+  file = BFS_2D_flat.e
+  # uniform_refine = 1
 []
 
 [Problem]
@@ -146,13 +138,13 @@
 [FVBCs]
   [outlet_p]
     type = INSFVOutletPressureBC
-    boundary = 'right'
+    boundary = 'Outlet'
     variable = pressure_p
     function = 0
   []
   [outlet_p_zerograd]
     type = INSFVSymmetryPressureBC
-    boundary = 'left top bottom'
+    boundary = 'Inlet Wall'
     variable = pressure_p
   []
 []
@@ -178,7 +170,7 @@
 
 [Executioner]
   type = Transient
-  num_steps = 20
+  num_steps = 30
   dt = 0.1
   dtmin = 0.1
   solve_type = 'LINEAR'
@@ -188,15 +180,18 @@
   # petsc_options_value = 'gmres asm lu 100 NONZERO 2 1E-14 1E-12'
   petsc_options_iname = '-ksp_type -pc_type -pc_sub_type -sub_pc_factor_levels'
   petsc_options_value = 'gmres asm ilu 4'
-  momentum_predictor_bool = false
-  verbose_print = false
+  nl_rel_tol = 1e-2
+  nl_abs_tol = 1e-6
+  nl_max_its = 40
+  l_tol = 1e-2
+  l_max_its = 100
 []
 
 [MultiApps]
   [sub_predictor]
     #type = TransientMultiApp
     type = FullSolveMultiApp
-    input_files = FV_Channel_Momentum_Predictor.i
+    input_files = FV_BFS_2D_Predictor.i
     execute_on = TIMESTEP_BEGIN
     sub_cycling = false
   []
@@ -390,7 +385,7 @@
 []
 
 [Outputs]
-  file_base = channel
+  file_base = BFS_2D
   exodus = true
   checkpoint = true
   # perf_graph = true # prints a performance report to the terminal
