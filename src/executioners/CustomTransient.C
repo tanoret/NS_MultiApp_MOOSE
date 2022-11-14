@@ -149,6 +149,9 @@ CustomTransient::validParams()
 
   params.addParam<bool>("momentum_predictor_bool", false, "If true then do SIMPLE transfers.");
 
+  params.addRangeCheckedParam<Real>("velocity_relaxation", 1.0,
+                                    "(0 <= velocity_relaxation) & (velocity_relaxation <= 1)",
+                                    "Pressure field relaxation must be between 0 and 1 both included.");
   return params;
 }
 
@@ -187,7 +190,8 @@ CustomTransient::CustomTransient(const InputParameters & parameters)
     _sln_diff(_nl.addVector("sln_diff", false, PARALLEL)),
     _normalize_solution_diff_norm_by_dt(getParam<bool>("normalize_solution_diff_norm_by_dt")),
     _verbose_print(getParam<bool>("verbose_print")),
-    _momentum_predictor_bool(getParam<bool>("momentum_predictor_bool"))
+    _momentum_predictor_bool(getParam<bool>("momentum_predictor_bool")),
+    _velocity_relaxation(getParam<Real>("velocity_relaxation"))
 {
   _fixed_point_solve->setInnerSolve(_feproblem_solve);
 
@@ -316,6 +320,47 @@ void
 CustomTransient::preStep()
 {
   _time_stepper->preStep();
+}
+
+void
+CustomTransient::relax()
+{
+  Vec _mat_diag;
+  PetscScalar _loc_vel_relaxation = (1.0 - _velocity_relaxation) / _velocity_relaxation;
+
+  PetscInt mesh_dimension  = feProblem().mesh().dimension();
+  PetscInt active_elements = static_cast<PetscInt>(feProblem().mesh().getMesh().n_active_elem());
+
+  VecCreate(MPI_COMM_WORLD, &_mat_diag);
+  VecSetSizes(_mat_diag, active_elements*mesh_dimension, PETSC_DECIDE);
+  VecSetFromOptions(_mat_diag);
+  VecZeroEntries(_mat_diag);
+
+  System & sys = _nl.system();
+  NonlinearImplicitSystem & isys = dynamic_cast<NonlinearImplicitSystem&>(sys);
+  SparseMatrix<Number> * mat = isys.matrix;
+  PetscMatrix<Number> * pmat = dynamic_cast<PetscMatrix<Number> *>(mat);
+  MatGetDiagonal(pmat->mat(), _mat_diag);
+  VecScale(_mat_diag, _loc_vel_relaxation + 1.0);
+  MatDiagonalSet(pmat->mat(), _mat_diag, INSERT_VALUES);
+
+  NumericVector<Number> * loc_residual = isys.rhs;
+  PetscVector<Number> * ploc_residual = dynamic_cast<PetscVector<Number> *>(loc_residual);
+  VecScale(_mat_diag, _loc_vel_relaxation/(_loc_vel_relaxation + 1.0));
+  VecAXPY(ploc_residual->vec(), 1.0, _mat_diag);
+
+  if(_verbose_print)
+  {
+    std::cout << "\n ************ \n Pre-solve: \n ************ \n" << std::endl;
+    // std::cout << "Matrix of coefs: " << std::endl;
+    // MatView(pmat->mat(), PETSC_VIEWER_STDOUT_WORLD);
+    // std::cout << "RHS: " << std::endl;
+    // MatView(ploc_residual->vec(), PETSC_VIEWER_STDOUT_WORLD);
+    std::cout << isys.matrix << std::endl;
+    std::cout << isys.rhs << std::endl;
+  }
+
+  VecDestroy(&_mat_diag);
 }
 
 void
@@ -500,6 +545,8 @@ CustomTransient::postStep()
 
     VecDestroy(&_rhs_loc);
     //feProblem().getAuxiliarySystem().solution().close();
+
+    PetscViewerPopFormat(PETSC_VIEWER_STDOUT_WORLD);
 
     std::cout << "Tutto bene." << std::endl;
 
@@ -897,6 +944,7 @@ CustomTransient::postStep()
     VecDestroy(&_rhs);
     VecDestroy(&vec_dummy);
     MatDestroy(&MC);
+    PetscViewerPopFormat(PETSC_VIEWER_STDOUT_WORLD);
     aux_sys.solution().close();
   }
 
@@ -1150,6 +1198,9 @@ CustomTransient::takeStep(Real input_dt)
   _problem.onTimestepBegin();
 
   _time_stepper->step();
+
+  relax();
+
   _xfem_repeat_step = _fixed_point_solve->XFEMRepeatStep();
 
   _last_solve_converged_custom = _time_stepper->converged();

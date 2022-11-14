@@ -60,5 +60,5 @@ FVFunctorDivergence::computeQpResidual()
   };
 
   Moose::FV::loopOverElemFaceInfo(*_current_elem, _mesh, _subproblem, action_functor);
-  return _sign * divergence; /// _assembly.elemVolume();
+  return _sign * divergence / _assembly.elemVolume();
 }

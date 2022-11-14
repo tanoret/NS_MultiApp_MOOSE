@@ -68,6 +68,10 @@ FVNavStokesPredictor_p::validParams()
 
   params.addClassDescription("Object for advecting momentum, e.g. rho*u");
 
+  params.addRangeCheckedParam<Real>("velocity_relaxation", 1.0,
+                                    "(0 <= velocity_relaxation) & (velocity_relaxation <= 1)",
+                                    "Pressure field relaxation must be between 0 and 1 both included.");
+
   return params;
 }
 
@@ -85,7 +89,8 @@ FVNavStokesPredictor_p::FVNavStokesPredictor_p(const InputParameters & params)
     _rho(getFunctor<ADReal>("rho")),
     _dim(_subproblem.mesh().dimension()),
     _current_elem(_assembly.elem()),
-    _index(getParam<MooseEnum>("momentum_component"))
+    _index(getParam<MooseEnum>("momentum_component")),
+    _velocity_relaxation(getParam<Real>("velocity_relaxation"))
 {
 #ifndef MOOSE_GLOBAL_AD_INDEXING
   mooseError("INSFV is not supported by local AD indexing. In order to use INSFV, please run the "
@@ -552,14 +557,35 @@ FVNavStokesPredictor_p::computeQpResidual()
   ADRealVectorValue v;
   ADReal adv_quant_interface;
 
+  Real _loc_diag_relaxation = 1.0 / _velocity_relaxation;
+  Real _loc_rhs_relaxation  = (1.0 - _velocity_relaxation) / _velocity_relaxation;
+
   const auto elem_face = elemFromFace();
   const auto neighbor_face = neighborFromFace();
+  const Elem * const elem = &_face_info->elem();
+  const Elem * const neighbor = _face_info->neighborPtr();
+
+  auto _var_old = _u_var;
+  if (_index == 1) {
+    _var_old = _v_var;
+  }
+  if (_index == 2) {
+    _var_old = _w_var;
+  }
+
+  auto _relaxed_elem_value =
+    _var(elem_face) * _loc_diag_relaxation +
+    _var_old->getElemValue(elem) * _loc_rhs_relaxation;
+
+  auto _relaxed_neigh_value =
+    _var(neighbor_face) +
+    _var_old->getNeighborValue(neighbor, *_face_info, _var_old->getElemValue(elem));
 
   this->interpolate(_velocity_interp_method, v);
   Moose::FV::interpolate(_advected_interp_method,
                          adv_quant_interface,
-                         _rho(elem_face) * _var(elem_face),
-                         _rho(neighbor_face) * _var(neighbor_face),
+                         _rho(elem_face) * _relaxed_elem_value,
+                         _rho(neighbor_face) * _relaxed_neigh_value,
                          v,
                          *_face_info,
                          true);
@@ -580,12 +606,34 @@ FVNavStokesPredictor_p::computeQpResidual()
   //     _face_info, Moose::FV::LimiterType::CentralDifference, true, faceArgSubdomains()));
 
   // Compute face superficial velocity gradient
-  auto dudn = gradUDotNormal(); //_var.adGradSln(*_face_info) * _face_info->normal();
+  // auto dudn = gradUDotNormal(); //_var.adGradSln(*_face_info) * _face_info->normal();
                                 ////Moose::FV::gradUDotNormal(_u_elem[_qp], _u_neighbor[_qp],
                                 //*_face_info, _var);
 
+  auto dudn = _var.adGradSln(*_face_info) * _face_info->normal();
+
+  auto ft = _face_info->faceType(_var.name());
+  auto dudn_relaxed = dudn * 0.0;
+  // if (ft == FaceInfo::VarFaceNeighbors::ELEM)
+  // {
+  //   dudn_relaxed = -1.0 * (_var(elem_face) - _var_old->getElemValue(elem)) * 1.0
+  //                   / _face_info->dCFMag();
+  // }
+  if (ft == FaceInfo::VarFaceNeighbors::ELEM || ft == FaceInfo::VarFaceNeighbors::BOTH)
+  {
+    // residual contribution of this kernel to the elem element
+    dudn_relaxed = -_loc_rhs_relaxation * (_var(elem_face) - _var_old->getElemValue(elem))
+                   / _face_info->dCFMag();
+  }
+  if (ft == FaceInfo::VarFaceNeighbors::NEIGHBOR || ft == FaceInfo::VarFaceNeighbors::BOTH)
+  {
+    // residual contribution of this kernel to the neighbor element
+    dudn_relaxed = -_loc_rhs_relaxation * (_var(elem_face) - _var_old->getElemValue(elem))
+                   / _face_info->dCFMag();
+  }
+
   // First term of residual
-  const auto diffusion_residual = -1.0 * mu_face * dudn; // mu_face * dudn;
+  const auto diffusion_residual = -1.0 * mu_face * (dudn_relaxed + dudn); // mu_face * dudn;
 
   // Pressure Residual
   // const Elem * const elem = &_face_info->elem();

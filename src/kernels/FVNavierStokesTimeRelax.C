@@ -32,6 +32,7 @@ FVNavierStokesTimeRelax::validParams()
                                   "Use steady_state_detection instead");
 
   params.addRequiredCoupledVar("Ainv", "Ainv from previous momenutm predictor for solver relaxation.");
+  params.addRequiredCoupledVar("Ainv_old", "Ainv_old from previous momenutm predictor for solver relaxation.");
 
   return params;
 }
@@ -41,6 +42,7 @@ FVNavierStokesTimeRelax::FVNavierStokesTimeRelax(const InputParameters & paramet
     _add_time_derivative(getParam<bool>("add_time_derivative")),
     _velocity_relaxation(getParam<Real>("velocity_relaxation")),
     _Ainv(dynamic_cast<const MooseVariableFVReal *>(getFieldVar("Ainv", 0))),
+    _Ainv_old(dynamic_cast<const MooseVariableFVReal *>(getFieldVar("Ainv_old", 0))),
     _u_dot(_var.adUDot())
 {
   std::cout << "Constructor OK" << std::endl;
@@ -52,6 +54,7 @@ FVNavierStokesTimeRelax::computeQpResidual()
   ADReal residual(0.0);
   Real _loc_vel_relaxation(0.0);
   Real _diagonal_entry(0.0);
+  Real _diagonal_entry_old(0.0);
 
   if (_add_time_derivative)
     residual += _u_dot[_qp];
@@ -62,14 +65,36 @@ FVNavierStokesTimeRelax::computeQpResidual()
   {
     _loc_vel_relaxation = (1.0 - _velocity_relaxation) / _velocity_relaxation;
     auto _inverse_diagonal_entry = _Ainv->getElemValue(_current_elem); //.value();
+    auto _inverse_diagonal_entry_old = _Ainv_old->getElementalValueOld(_current_elem);
+    auto _elem_trace_min = std::pow(3.0, 1); // /std::sqrt(_assembly.elemVolume());
+    auto _elem_trace_max = std::pow(3.0, 3); // /std::sqrt(_assembly.elemVolume());
 
     if (_inverse_diagonal_entry == 0)
     {
-      _diagonal_entry = 1.0;
+      _diagonal_entry = _elem_trace_min;
     }
-    else {
-      _diagonal_entry = 1.0 / _inverse_diagonal_entry.value();
+    else
+    {
+      _diagonal_entry = std::max(std::min(1.0 / std::abs(_inverse_diagonal_entry.value()),
+                                          _elem_trace_max),
+                                          _elem_trace_min);
     }
+    if (_inverse_diagonal_entry_old == 0)
+    {
+      _diagonal_entry_old = _elem_trace_min;
+    }
+    else
+    {
+      _diagonal_entry = std::max(std::min(1.0 / std::abs(_inverse_diagonal_entry_old),
+                                          _elem_trace_max),
+                                          _elem_trace_min);
+    }
+
+    // std::cout << "Diag: " << _loc_vel_relaxation * _diagonal_entry << std::endl;
+    // std::cout << "Diag Old: " << _loc_vel_relaxation * _diagonal_entry_old << std::endl;
+    // std::cout << "Diff: " << _loc_vel_relaxation * (_diagonal_entry - _diagonal_entry_old) << std::endl;
+
+    //std::cout << _diagonal_entry << std::endl;
     residual += _loc_vel_relaxation * _diagonal_entry
                 * (_u[_qp] - _var.getElementalValueOld(_current_elem));
   }
