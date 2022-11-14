@@ -28,6 +28,7 @@ protected:
 
   // Previous Ainv
   const MooseVariableFVReal * const _Ainv;
+  const MooseVariableFVReal * const _Ainv_old;
 
   // Storing time derivative
   const ADVariableValue & _u_dot;

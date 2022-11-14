@@ -1,7 +1,7 @@
 mu=1.1
 rho=1.0
 U=1.0
-advected_interp_method='average'
+advected_interp_method='average' #'average'
 #velocity_interp_method='rc'
 velocity_interp_method='average'
 
@@ -9,12 +9,12 @@ velocity_interp_method='average'
   [gen]
     type = GeneratedMeshGenerator
     dim = 2
-    nx = 200
-    ny = 40
+    nx = 3
+    ny = 3
     xmin = 0.0
-    xmax = 5.0
+    xmax = 3.0
     ymin = 0.0
-    ymax = 1.0
+    ymax = 3.0
   []
 []
 
@@ -47,6 +47,11 @@ velocity_interp_method='average'
   []
   [Ainv_x]
     type = MooseVariableFVReal
+    initial_condition = 0
+  []
+  [Ainv_x_old]
+    type = MooseVariableFVReal
+    initial_condition = 0
   []
   [Hu_x]
     type = MooseVariableFVReal
@@ -56,6 +61,11 @@ velocity_interp_method='average'
   []
   [Ainv_y]
     type = MooseVariableFVReal
+    initial_condition = 0
+  []
+  [Ainv_y_old]
+    type = MooseVariableFVReal
+    initial_condition = 0
   []
   [Hu_y]
     type = MooseVariableFVReal
@@ -79,14 +89,16 @@ velocity_interp_method='average'
     mu = ${mu}
     rho = ${rho}
     momentum_component = 'x'
+    velocity_relaxation = 1.0
   []
 
   [u_time_derivative_and_relax]
     type = FVNavierStokesTimeRelax
     variable = u
-    add_time_derivative = false
-    velocity_relaxation = 0.7
+    add_time_derivative = true
+    velocity_relaxation = 0.5
     Ainv = Ainv_x
+    Ainv_old = Ainv_x_old
   []
 
   [v_adv_diff_residual]
@@ -102,14 +114,16 @@ velocity_interp_method='average'
     mu = ${mu}
     rho = ${rho}
     momentum_component = 'y'
+    velocity_relaxation = 1.0
   []
 
   [v_time_derivative_and_relax]
     type = FVNavierStokesTimeRelax
     variable = v
-    add_time_derivative = false
-    velocity_relaxation = 0.7
+    add_time_derivative = true
+    velocity_relaxation = 0.5
     Ainv = Ainv_y
+    Ainv_old = Ainv_y_old
   []
 
   # [u_advection]
@@ -162,6 +176,41 @@ velocity_interp_method='average'
   #   pressure = pressure_mom
   # []
 
+[]
+
+[AuxKernels]
+  [corrector_x]
+    type = FVCorrectorPredictor
+    variable = u_adv
+    execute_on = timestep_begin
+    pressure = pressure_mom
+    Ainv = Ainv_x
+    Hhat = Hu_x
+    momentum_component = 'x'
+    pressure_relaxation = 0.3
+  []
+  [corrector_y]
+    type = FVCorrectorPredictor
+    variable = v_adv
+    execute_on = timestep_begin
+    pressure = pressure_mom
+    Ainv = Ainv_y
+    Hhat = Hu_y
+    momentum_component = 'y'
+    pressure_relaxation = 0.3
+  []
+  [copy_Ainv_x]
+    type = FVCopyKernel
+    variable = Ainv_x_old
+    execute_on = timestep_end
+    FVVar = Ainv_x
+  []
+  [copy_Ainv_y]
+    type = FVCopyKernel
+    variable = Ainv_y_old
+    execute_on = timestep_end
+    FVVar = Ainv_y
+  []
 []
 
 [FVBCs]
@@ -259,6 +308,7 @@ velocity_interp_method='average'
 
   momentum_predictor_bool = true
   verbose_print = false
+  velocity_relaxation = 1.0
 []
 
 [Outputs]

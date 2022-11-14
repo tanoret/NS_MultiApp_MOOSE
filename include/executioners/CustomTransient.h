@@ -79,6 +79,8 @@ public:
 
   virtual void preStep() override;
 
+  virtual void relax();
+
   virtual void postStep() override;
 
   /**
@@ -290,4 +292,5 @@ protected:
   const bool _normalize_solution_diff_norm_by_dt;
   const bool & _verbose_print;
   const bool & _momentum_predictor_bool;
+  const Real _velocity_relaxation;
 };

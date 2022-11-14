@@ -2,12 +2,12 @@
   [gen]
     type = GeneratedMeshGenerator
     dim = 2
-    nx = 200
-    ny = 40
+    nx = 3
+    ny = 3
     xmin = 0.0
-    xmax = 5.0
+    xmax = 3.0
     ymin = 0.0
-    ymax = 1.0
+    ymax = 3.0
   []
 []
 
@@ -58,12 +58,12 @@
   [pressure_relaxed]
     type = INSFVPressureVariable
   []
-  [u_adv]
-    type = INSFVVelocityVariable
-  []
-  [v_adv]
-    type = INSFVVelocityVariable
-  []
+  # [u_adv]
+  #   type = INSFVVelocityVariable
+  # []
+  # [v_adv]
+  #   type = INSFVVelocityVariable
+  # []
 []
 
 [FVKernels]
@@ -117,30 +117,30 @@
     execute_on = timestep_end
     pressure = pressure_p
     pressure_old = pressure_old
-    pressure_relaxation = 0.3
+    pressure_relaxation = 0.01
   []
-  [corrector_x]
-    type = FVCorrector
-    variable = u_adv
-    execute_on = timestep_end
-    pressure = pressure_relaxed
-    pressure_old = pressure_old
-    Ainv = Ainv_x
-    Hhat = Hhat_x
-    momentum_component = 'x'
-    pressure_relaxation = 0.3
-  []
-  [corrector_y]
-    type = FVCorrector
-    variable = v_adv
-    execute_on = timestep_end
-    pressure = pressure_relaxed
-    pressure_old = pressure_old
-    Ainv = Ainv_y
-    Hhat = Hhat_y
-    momentum_component = 'y'
-    pressure_relaxation = 0.3
-  []
+  # [corrector_x]
+  #   type = FVCorrector
+  #   variable = u_adv
+  #   execute_on = timestep_end
+  #   pressure = pressure_relaxed
+  #   pressure_old = pressure_old
+  #   Ainv = Ainv_x
+  #   Hhat = Hhat_x
+  #   momentum_component = 'x'
+  #   pressure_relaxation = 1.0
+  # []
+  # [corrector_y]
+  #   type = FVCorrector
+  #   variable = v_adv
+  #   execute_on = timestep_end
+  #   pressure = pressure_relaxed
+  #   pressure_old = pressure_old
+  #   Ainv = Ainv_y
+  #   Hhat = Hhat_y
+  #   momentum_component = 'y'
+  #   pressure_relaxation = 1.0
+  # []
 []
 
 [FVBCs]
@@ -178,7 +178,7 @@
 
 [Executioner]
   type = Transient
-  num_steps = 20
+  num_steps = 500
   dt = 0.1
   dtmin = 0.1
   solve_type = 'LINEAR'
@@ -189,7 +189,7 @@
   petsc_options_iname = '-ksp_type -pc_type -pc_sub_type -sub_pc_factor_levels'
   petsc_options_value = 'gmres asm ilu 4'
   momentum_predictor_bool = false
-  verbose_print = false
+  verbose_print = true
 []
 
 [MultiApps]
@@ -282,23 +282,23 @@
     variable = pressure_old
   []
 
-  [u_to_sub_predictor]
-    type = MultiAppCopyTransfer
-    #type = MultiAppCopyTransfer
-    direction = to_multiapp
-    multi_app = sub_predictor
-    source_variable = u_adv
-    variable = u_adv
-  []
+  # [u_to_sub_predictor]
+  #   type = MultiAppCopyTransfer
+  #   #type = MultiAppCopyTransfer
+  #   direction = to_multiapp
+  #   multi_app = sub_predictor
+  #   source_variable = u_adv
+  #   variable = u_adv
+  # []
 
-  [v_to_sub_predictor]
-    type = MultiAppCopyTransfer
-    #type = MultiAppCopyTransfer
-    direction = to_multiapp
-    multi_app = sub_predictor
-    source_variable = v_adv
-    variable = v_adv
-  []
+  # [v_to_sub_predictor]
+  #   type = MultiAppCopyTransfer
+  #   #type = MultiAppCopyTransfer
+  #   direction = to_multiapp
+  #   multi_app = sub_predictor
+  #   source_variable = v_adv
+  #   variable = v_adv
+  # []
 
   [p_to_sub_predictor]
     type = MultiAppCopyTransfer
@@ -306,6 +306,22 @@
     multi_app = sub_predictor
     source_variable = pressure_relaxed
     variable = pressure_mom
+  []
+
+  [Hhat_x_to_sub_predictor]
+    type = MultiAppCopyTransfer
+    direction = to_multiapp
+    multi_app = sub_predictor
+    source_variable = Hhat_x
+    variable = Hu_x
+  []
+
+  [Hhat_y_to_sub_predictor]
+    type = MultiAppCopyTransfer
+    direction = to_multiapp
+    multi_app = sub_predictor
+    source_variable = Hhat_y
+    variable = Hu_y
   []
 
   # [Ainv_x_to_sub_corrector]

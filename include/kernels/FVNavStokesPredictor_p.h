@@ -117,6 +117,9 @@ protected:
   /// index x|y|z
   const unsigned int _index;
 
+  // Velocity Relaxation Parameter
+  const Real _velocity_relaxation;
+
 private:
   /**
    * Query for \p INSFVBCs::INSFVFlowBC on \p bc_id and add if query successful
